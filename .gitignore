@@ -1,0 +1,41 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# testing
+/coverage
+
+# typescript
+*.tsbuildinfo
+
+# local env files — NEVER commit secrets
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# os / editor
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+
+# local throwaway postgres data (tests)
+/pgdata
+
+# lockfile intentionally untracked in this slice (see CI notes)
+package-lock.json
+
+# delivery artifact (git bundle), not source
+*.bundle

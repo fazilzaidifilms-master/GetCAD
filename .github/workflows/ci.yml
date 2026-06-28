@@ -1,0 +1,59 @@
+name: CI
+
+# Runs on every PR (and on pushes to the trunk). Target: under 5 minutes.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    # Throwaway Postgres for the DB tests (Tests B, C, D). Behaves like Supabase
+    # for these checks; the live Supabase project is never touched by CI.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # Order: type-check -> lint (incl. boundary rule) -> tests -> secret-scan.
+      - name: Type-check (tsc strict)
+        run: npm run typecheck
+
+      - name: Lint (includes core/ boundary rule)
+        run: npm run lint
+
+      - name: Tests (vitest — boundary + schema/RLS)
+        run: npm run test
+
+      - name: Secret scan
+        run: npm run secret-scan
