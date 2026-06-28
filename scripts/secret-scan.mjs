@@ -7,9 +7,9 @@ import { readFileSync, statSync } from "node:fs";
 const RULES = [
   { name: "Private key block", re: /-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/ },
   { name: "AWS access key id", re: /\bAKIA[0-9A-Z]{16}\b/ },
-  { name: "AWS secret access key assignment", re: /aws_secret_access_key\s*[=:]\s*['\"][^'\"\n]{30,}['\"]/i },
+  { name: "AWS secret access key assignment", re: /aws_secret_access_key\s*[=:]\s*['"][^'"\n]{30,}['"]/i },
   { name: "Supabase service_role JWT", re: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/ },
-  { name: "Generic API/secret key assignment", re: /(?:api[_-]?key|secret|password|token)\s*[=:]\s*['\"][A-Za-z0-9_\-]{24,}['\"]/i },
+  { name: "Generic API/secret key assignment", re: /(?:api[_-]?key|secret|password|token)\s*[=:]\s*['"][A-Za-z0-9_\-]{24,}['"]/i },
   // A secret must never be exposed to the browser via NEXT_PUBLIC_*.
   { name: "Secret leaked via NEXT_PUBLIC_*", re: /NEXT_PUBLIC_[A-Z0-9_]*(?:SECRET|KEY|TOKEN|PASSWORD|SERVICE_ROLE)\b/ },
 ];
