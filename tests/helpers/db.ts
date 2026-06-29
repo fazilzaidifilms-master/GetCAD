@@ -26,6 +26,7 @@ function sqlFilesIn(dir: string): string[] {
  */
 export async function freshSchema(client: Client): Promise<void> {
   await client.query("DROP SCHEMA IF EXISTS public CASCADE");
+  await client.query("DROP SCHEMA IF EXISTS app CASCADE");
   await client.query("CREATE SCHEMA public");
   const files = [
     ...sqlFilesIn(join(repoRoot, "db", "migrations")),
