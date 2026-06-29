@@ -10,3 +10,4 @@ export type {
   VerifiedPrincipal,
   VerifyClerkTokenOptions,
 } from "./auth/verifyClerkToken";
+export { isProtectedPath, PROTECTED_PREFIXES } from "./auth/session";

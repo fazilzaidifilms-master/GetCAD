@@ -10,8 +10,11 @@ const RULES = [
   { name: "AWS secret access key assignment", re: /aws_secret_access_key\s*[=:]\s*['"][^'"\n]{30,}['"]/i },
   { name: "Supabase service_role JWT", re: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/ },
   { name: "Generic API/secret key assignment", re: /(?:api[_-]?key|secret|password|token)\s*[=:]\s*['"][A-Za-z0-9_\-]{24,}['"]/i },
-  // A secret must never be exposed to the browser via NEXT_PUBLIC_*.
-  { name: "Secret leaked via NEXT_PUBLIC_*", re: /NEXT_PUBLIC_[A-Z0-9_]*(?:SECRET|KEY|TOKEN|PASSWORD|SERVICE_ROLE)\b/ },
+  // A secret must never be exposed to the browser via NEXT_PUBLIC_*. We match
+  // unambiguously-secret words only — publishable/anon keys (e.g.
+  // NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, NEXT_PUBLIC_SUPABASE_ANON_KEY) are public
+  // by design and must NOT trip this rule.
+  { name: "Secret leaked via NEXT_PUBLIC_*", re: /NEXT_PUBLIC_[A-Z0-9_]*(?:SECRET|SERVICE_ROLE|PRIVATE|PASSWORD)\b/ },
 ];
 
 // This scanner file legitimately contains the patterns above; don't scan it.
