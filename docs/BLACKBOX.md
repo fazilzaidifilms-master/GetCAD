@@ -135,3 +135,40 @@ rollback;
 - No claims (anon) → **0 rows**; all writes remain rejected by default-deny.
 
 **Automated:** `tests/db/policies.test.ts`.
+
+---
+
+# Login UI (Sprint 0, login slice)
+
+## H — Sign in, and the dashboard shows only your data
+
+> **Determinism note:** a real browser login uses live Clerk and can't be made
+> deterministic in CI, so this is a **manual** black-box test. The pure
+> security-relevant logic (which paths require auth) *is* unit-tested:
+> `core/auth/session.test.ts` (`isProtectedPath`). The login flow itself you run
+> once with your own keys.
+
+**Setup (your keys — not committed):** copy `.env.example` to `.env.local` and
+fill `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`,
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Clerk must be
+registered as a Supabase Third-Party Auth provider (done) and migrations
+`0005` + `0003` applied (done). Then `npm run dev`.
+
+**Steps:**
+1. Visit `/dashboard` while **logged out** → you are redirected to sign-in. *(This
+   is the `isProtectedPath` decision in `middleware.ts`.)*
+2. **Sign in** via Clerk.
+3. `/dashboard` now shows your **verified Clerk id** and your row from the
+   database — fetched **as you** through the bridge, so RLS governs it.
+4. New account with no row yet → the page shows a one-line `insert` to seed your
+   `users` row in Supabase. Run it, refresh → exactly your row appears, nothing
+   else.
+
+**What it proves:** the verified Clerk session reaches Postgres, and the slice-3
+RLS policies apply to a real logged-in user — the bridge, end to end.
+
+> **Flagged / deferred:** the app performs **no writes** this slice. Account
+> creation/onboarding is a state change that must go through the append-only
+> **audit log** (a later slice); until then you seed the row manually. Running
+> `next build`/`npm run dev` requires the keys above — CI does not (it runs only
+> tsc → eslint → vitest → secret-scan).
