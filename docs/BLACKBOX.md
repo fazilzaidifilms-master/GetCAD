@@ -101,3 +101,37 @@ npm run ci      # typecheck -> lint -> test -> secret-scan
 
 **Automated:** `.github/workflows/ci.yml` runs the same four steps on every PR,
 with a throwaway `postgres:16` service, under a 5-minute timeout.
+
+---
+
+# Clerk JWT bridge (Sprint 0, next slice)
+
+## F — Token verification accepts good tokens, rejects bad ones
+
+The bridge verifies Clerk tokens **server-side**: signature (against the public
+JWKS), issuer, and expiry. A valid token yields the Clerk `sub`; a tampered,
+expired, wrong-issuer, wrong-key, or sub-less token is **rejected**.
+
+**Automated (deterministic, offline — mints test JWTs with a throwaway key):**
+`core/auth/verifyClerkToken.test.ts`.
+
+## G — Identity reaches RLS (a user sees only what is theirs)
+
+With the verified Clerk id in `request.jwt.claims`, run as the `authenticated`
+role:
+
+```sql
+begin;
+select set_config('request.jwt.claims', '{"sub":"<a-user-id>"}', true);
+set local role authenticated;
+select * from orders;            -- only that user's orders
+select * from designer_profiles; -- 0 rows unless it's their own
+rollback;
+```
+
+- A **client** sees their own orders; a **designer** sees orders assigned to
+  them; **QC** sees orders in `QC_REVIEW`/`REVISION_REQUESTED`.
+- Neither side can read the **other side's identity** table (double-blind).
+- No claims (anon) → **0 rows**; all writes remain rejected by default-deny.
+
+**Automated:** `tests/db/policies.test.ts`.
