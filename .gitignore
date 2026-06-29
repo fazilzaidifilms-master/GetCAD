@@ -34,8 +34,5 @@ npm-debug.log*
 # local throwaway postgres data (tests)
 /pgdata
 
-# lockfile intentionally untracked in this slice (see CI notes)
-package-lock.json
-
 # delivery artifact (git bundle), not source
 *.bundle
