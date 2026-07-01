@@ -10,9 +10,14 @@ export default async function DashboardPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // Query Supabase AS THIS USER. The slice-3 RLS policies decide what comes
-  // back — this is the Clerk -> Supabase bridge working end to end.
   const supabase = await createUserSupabaseClient();
+
+  // Audited self-onboarding: creates this user's row (and a USER_CREATED audit
+  // entry) on first visit; idempotent thereafter. Identity comes from the
+  // verified token inside the function — nothing is trusted from the client.
+  const { error: onboardError } = await supabase.rpc("ensure_self");
+
+  // Then read AS THIS USER — RLS returns only their own row.
   const { data: me, error: meError } = await supabase
     .from("users")
     .select("id, role, status")
@@ -20,6 +25,8 @@ export default async function DashboardPage() {
   const { count: myOrders } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true });
+
+  const error = onboardError ?? meError;
 
   return (
     <main className="container max-w-2xl py-12">
@@ -32,9 +39,8 @@ export default async function DashboardPage() {
 
       <section className="mt-4 rounded-lg border p-4">
         <p className="text-sm text-muted-foreground">Your row in the database (via RLS)</p>
-        {meError ? (
-          // Surface real errors instead of silently looking like "no row".
-          <p className="mt-1 text-sm text-red-600">Query error: {meError.message}</p>
+        {error ? (
+          <p className="mt-1 text-sm text-red-600">Query error: {error.message}</p>
         ) : me ? (
           <ul className="mt-1 space-y-1 text-sm">
             <li>
@@ -48,19 +54,7 @@ export default async function DashboardPage() {
             </li>
           </ul>
         ) : (
-          <div className="mt-1 text-sm">
-            <p>
-              No account row yet. Onboarding (which creates this row, audited) is a
-              later slice. To see the bridge return data now, seed your own row in
-              the Supabase SQL editor:
-            </p>
-            <pre className="mt-2 overflow-x-auto rounded bg-muted p-3 text-xs">
-              {`insert into users (id, role, status)\nvalues ('${userId}', 'CLIENT', 'ACTIVE');`}
-            </pre>
-            <p className="mt-2 text-muted-foreground">
-              Then refresh — RLS will return exactly this row and nothing else.
-            </p>
-          </div>
+          <p className="mt-1 text-sm text-muted-foreground">Setting up your account…</p>
         )}
       </section>
     </main>
