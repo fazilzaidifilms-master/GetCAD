@@ -21,9 +21,19 @@ export default async function DashboardPage() {
     .from("orders")
     .select("id", { count: "exact", head: true });
 
+  // TEMPORARY DIAGNOSTIC: ask the DB what role/claims it sees for this request.
+  const { data: dbSees, error: debugError } = await supabase.rpc("debug_identity");
+
   return (
     <main className="container max-w-2xl py-12">
       <h1 className="text-2xl font-semibold tracking-tight">Your account</h1>
+
+      <section className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+        <p className="text-sm font-medium text-amber-800">Diagnostic — what the database sees</p>
+        <pre className="mt-1 overflow-x-auto text-xs text-amber-900">
+          {JSON.stringify(dbSees ?? { error: debugError?.message }, null, 2)}
+        </pre>
+      </section>
 
       <section className="mt-6 rounded-lg border p-4">
         <p className="text-sm text-muted-foreground">Verified Clerk identity</p>
