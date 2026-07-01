@@ -13,9 +13,9 @@ export default async function DashboardPage() {
   // Query Supabase AS THIS USER. The slice-3 RLS policies decide what comes
   // back — this is the Clerk -> Supabase bridge working end to end.
   const supabase = await createUserSupabaseClient();
-  const { data: me } = await supabase
+  const { data: me, error: meError } = await supabase
     .from("users")
-    .select("id, role, status, created_at")
+    .select("id, role, status")
     .maybeSingle();
   const { count: myOrders } = await supabase
     .from("orders")
@@ -32,7 +32,10 @@ export default async function DashboardPage() {
 
       <section className="mt-4 rounded-lg border p-4">
         <p className="text-sm text-muted-foreground">Your row in the database (via RLS)</p>
-        {me ? (
+        {meError ? (
+          // Surface real errors instead of silently looking like "no row".
+          <p className="mt-1 text-sm text-red-600">Query error: {meError.message}</p>
+        ) : me ? (
           <ul className="mt-1 space-y-1 text-sm">
             <li>
               role: <span className="font-mono">{me.role}</span>

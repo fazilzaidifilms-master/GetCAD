@@ -10,13 +10,20 @@ import { readSupabaseConfig } from "@/config/supabase";
  * token. Supabase validates that token against Clerk's JWKS and exposes its
  * `sub` to RLS, so every query runs as that user and the slice-3 policies apply.
  * No service-role key here — this client has exactly the caller's rights.
+ *
+ * We attach the token via an explicit Authorization header (fetched eagerly),
+ * the most reliable way to bind a Clerk session to Supabase from a Server
+ * Component across supabase-js versions.
  */
 export async function createUserSupabaseClient(): Promise<SupabaseClient> {
   const { url, anonKey } = readSupabaseConfig();
+  const { getToken } = await auth();
+  const token = await getToken();
+
   return createClient(url, anonKey, {
-    accessToken: async () => {
-      const { getToken } = await auth();
-      return (await getToken()) ?? null;
+    global: {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 }
