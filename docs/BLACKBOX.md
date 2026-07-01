@@ -172,3 +172,44 @@ RLS policies apply to a real logged-in user — the bridge, end to end.
 > **audit log** (a later slice); until then you seed the row manually. Running
 > `next build`/`npm run dev` requires the keys above — CI does not (it runs only
 > tsc → eslint → vitest → secret-scan).
+
+---
+
+# Audit log (append-only, hash-chained)
+
+All three tests are fully deterministic (pure database) — no browser, no keys.
+Automated in `tests/db/audit.test.ts`. To run by hand, `npm run db:apply` then
+use the `psql` snippets below.
+
+## I — Append-only: history cannot be rewritten
+
+```sql
+select audit.log_event('USER_CREATED','user','u1','u1','CLIENT');
+update audit.audit_log set action='HACKED';   -- ERROR: append-only … UPDATE
+delete from audit.audit_log;                   -- ERROR: append-only … DELETE
+truncate audit.audit_log;                      -- ERROR: append-only … TRUNCATE
+```
+
+## J — Tamper-evident hash chain
+
+```sql
+select audit.log_event('USER_CREATED','user','u1','u1','CLIENT');
+select audit.log_event('ORDER_STATUS_CHANGED','order','o1','u2','OPS','{"to":"SUBMITTED"}');
+select audit.verify_chain();   -- {"valid": true, "entries": 2}
+
+-- simulate an attacker with raw storage access:
+alter table audit.audit_log disable trigger audit_log_no_update;
+update audit.audit_log set payload='{"tampered":true}' where seq=1;
+alter table audit.audit_log enable trigger audit_log_no_update;
+select audit.verify_chain();   -- {"valid": false, "broken_at": 1, "reason": "content hash mismatch"}
+```
+
+## K — Locked down: only the trusted server may touch it
+
+```sql
+set role authenticated;  select * from audit.audit_log;      -- ERROR: permission denied
+set role authenticated;  select audit.log_event('X','user'); -- ERROR: permission denied
+reset role;
+```
+Only `service_role` (BYPASSRLS, server-side) can read/append; `anon` and
+`authenticated` cannot reach the `audit` schema at all.

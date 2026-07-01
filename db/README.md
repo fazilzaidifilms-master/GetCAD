@@ -14,10 +14,25 @@ leaves no reviewable, replayable history.
   - `0003_profiles.sql` — `client_profiles` + `designer_profiles`, identity isolated, one per side.
   - `0004_orders.sql` — orders; money as integer minor units; opaque FKs only.
   - `0005_auth_identity.sql` — `app` schema identity helpers (`app.current_clerk_id()`, `app.current_user_role()`) the policies use; the DB side of the Clerk→Supabase bridge.
+  - `0006_audit_log.sql` — append-only, hash-chained `audit.audit_log` + helpers (`audit.log_event()`, `audit.verify_chain()`).
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
   - `0003_identity_allow_policies.sql` — first identity-gated **READ** policies (self-read on users/profiles; client/designer/QC reads on orders). Writes and staff identity-piercing reads stay deferred.
+  - `0004_audit_log_rls.sql` — locks the audit log shut (RLS default-deny + grants: only `service_role` may read/append, never update/delete).
+
+## Audit log (append-only, hash-chained)
+
+`audit.audit_log` records every state change and identity-piercing read as an
+immutable entry. Enforced by the database:
+
+- **Append-only** — an `UPDATE`/`DELETE`/`TRUNCATE` trigger raises, so history
+  cannot be rewritten (even by a privileged connection).
+- **Tamper-evident** — each entry's `hash` = SHA-256 over its contents + the
+  previous entry's `hash` (a chain). `audit.verify_chain()` recomputes the chain
+  and returns `{valid:false, broken_at:<seq>}` if any past entry was altered.
+- Written only via `audit.log_event(...)`; readable only by `service_role`.
+- Hashing uses Postgres built-ins (`sha256`) — identical on local PG and Supabase.
 
 ## Clerk → Supabase identity bridge
 
