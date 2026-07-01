@@ -160,9 +160,8 @@ registered as a Supabase Third-Party Auth provider (done) and migrations
 2. **Sign in** via Clerk.
 3. `/dashboard` now shows your **verified Clerk id** and your row from the
    database — fetched **as you** through the bridge, so RLS governs it.
-4. New account with no row yet → the page shows a one-line `insert` to seed your
-   `users` row in Supabase. Run it, refresh → exactly your row appears, nothing
-   else.
+4. First visit auto-creates your `users` row (audited) — see the onboarding
+   slice below; the dashboard is populated with no manual step.
 
 **What it proves:** the verified Clerk session reaches Postgres, and the slice-3
 RLS policies apply to a real logged-in user — the bridge, end to end.
@@ -213,3 +212,37 @@ reset role;
 ```
 Only `service_role` (BYPASSRLS, server-side) can read/append; `anon` and
 `authenticated` cannot reach the `audit` schema at all.
+
+---
+
+# Onboarding (audited self-signup)
+
+## L — First login creates your row, audited and idempotent
+
+Automated (deterministic, pure DB): `tests/db/onboarding.test.ts`.
+
+`public.ensure_self()` takes the current user's Clerk id from the verified token
+(never a parameter), creates their `users` row if missing, and — in the same
+transaction — appends one `USER_CREATED` entry to the audit log.
+
+```sql
+-- simulate a logged-in request
+select set_config('request.jwt.claims', '{"sub":"user_alice","role":"authenticated"}', false);
+set role authenticated;
+
+select public.ensure_self();   -- {"created": true,  "user_id": "user_alice"}
+select public.ensure_self();   -- {"created": false, "user_id": "user_alice"}  (idempotent)
+reset role;
+
+select * from users where id = 'user_alice';                 -- CLIENT / ACTIVE
+select action from audit.audit_log where entity_id = 'user_alice';  -- exactly one USER_CREATED
+select audit.verify_chain();   -- {"valid": true, ...}
+```
+
+**Browser (manual, part of test H):** sign in on a fresh account → the dashboard
+is already populated (role/status shown) with **no manual `insert`** — the row
+was created and audited on first load.
+
+> Flagged: a self-signup defaults to CLIENT / ACTIVE (placeholder); staff and
+> designers are provisioned by other paths, and a real flow may use PENDING +
+> verification.
