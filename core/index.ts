@@ -13,3 +13,10 @@ export type {
 export { isProtectedPath, PROTECTED_PREFIXES } from "./auth/session";
 export { availableTransitions } from "./orders/availableTransitions";
 export type { TransitionRow, ActorContext } from "./orders/availableTransitions";
+export { sanitizeUpload, MAX_UPLOAD_BYTES, DEFAULT_ALLOWLIST } from "./files/sanitizationGate";
+export type {
+  IncomingFile,
+  SanitizedFile,
+  GateResult,
+  GateOptions,
+} from "./files/sanitizationGate";

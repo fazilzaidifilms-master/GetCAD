@@ -367,3 +367,38 @@ the allowed action buttons; ASSIGN takes the designer's **opaque id**.
 > Flagged: visibility = "you can act on it now" (state-machine-tied). Assigning
 > uses an opaque designer id — an audited designer-roster/picker (which reveals
 > identity) is a separate slice. Designers already see their assigned orders.
+
+---
+
+# File pipeline — part (a): sanitization gate + versions (Slice 12)
+
+## Q1 — The single sanitization gate (pure, deterministic)
+
+Automated: `core/files/sanitizationGate.test.ts`. Every upload passes through
+`sanitizeUpload()`; nothing bypasses it.
+
+- **ACCEPTS** an allowed type whose **magic bytes match** the declared type, and
+  returns an **identity-stripped** object name (opaque id + verified extension —
+  the original filename is dropped).
+- **REJECTS**: disallowed content types; **disguised** files (declared PDF but
+  bytes are an EXE); type/extension mismatches; oversized; empty; too-short
+  headers.
+
+## Q2 — File versions (audited, versioned, RLS-gated)
+
+Automated: `tests/db/file_versions.test.ts`.
+
+```sql
+-- as the order's designer or client:
+select public.add_file_version('<vid>','<order>','<opaque_key>','model/step', 5000);
+-- -> version_no increments; orders.current_version_id points at it; FILE_VERSION_ADDED audited
+```
+
+**Proves:** only a participant (client/assigned designer) can add a version; each
+version increments `version_no` and moves `orders.current_version_id`; every add
+is audited; RLS lets participants read versions and blocks unrelated users (you
+can read a version only if you can read its order); chain stays valid.
+
+> Part (b) wires real upload/download to Supabase Storage with **signed
+> short-TTL URLs** (calling this gate on the real bytes) — its end-to-end check is
+> a manual browser test.

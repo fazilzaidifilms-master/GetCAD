@@ -18,6 +18,7 @@ leaves no reviewable, replayable history.
   - `0007_onboarding.sql` — `public.ensure_self()`: audited, idempotent self-signup (creates the caller's `users` row + a `USER_CREATED` audit entry).
   - `0008_order_state_machine.sql` — `order_transitions` (legal-move graph as data), `public.create_order()`, and `public.transition_order()` (role-gated, audited status changes).
   - `0009_designer_onboarding_gate.sql` — gated designer onboarding: `apply_as_designer()`, `accept_designer_agreement()` (audited), `app.designer_is_assignable()`; `transition_order`'s ASSIGNED step enforces the gate.
+  - `0010_file_versions.sql` — `file_versions` (opaque keys only) + `public.add_file_version()` (audited, sets `orders.current_version_id`). Every key comes from the single sanitization gate (`core/files`).
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -25,6 +26,7 @@ leaves no reviewable, replayable history.
   - `0004_audit_log_rls.sql` — locks the audit log shut (RLS default-deny + grants: only `service_role` may read/append, never update/delete).
   - `0005_order_transitions_rls.sql` — RLS on the transition graph; authenticated users may read it (reference data), never write it.
   - `0006_staff_order_read.sql` — staff order visibility tied to the state machine (a role reads an order only when it has a legal move on it); orders carry no identity, so not an identity-piercing read.
+  - `0007_file_versions_rls.sql` — you can read a file version only if you can read its order (inherits order visibility).
 
 ## Order state machine
 
