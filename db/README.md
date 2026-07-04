@@ -15,11 +15,31 @@ leaves no reviewable, replayable history.
   - `0004_orders.sql` — orders; money as integer minor units; opaque FKs only.
   - `0005_auth_identity.sql` — `app` schema identity helpers (`app.current_clerk_id()`, `app.current_user_role()`) the policies use; the DB side of the Clerk→Supabase bridge.
   - `0006_audit_log.sql` — append-only, hash-chained `audit.audit_log` + helpers (`audit.log_event()`, `audit.verify_chain()`).
+  - `0007_onboarding.sql` — `public.ensure_self()`: audited, idempotent self-signup (creates the caller's `users` row + a `USER_CREATED` audit entry).
+  - `0008_order_state_machine.sql` — `order_transitions` (legal-move graph as data), `public.create_order()`, and `public.transition_order()` (role-gated, audited status changes).
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
   - `0003_identity_allow_policies.sql` — first identity-gated **READ** policies (self-read on users/profiles; client/designer/QC reads on orders). Writes and staff identity-piercing reads stay deferred.
   - `0004_audit_log_rls.sql` — locks the audit log shut (RLS default-deny + grants: only `service_role` may read/append, never update/delete).
+  - `0005_order_transitions_rls.sql` — RLS on the transition graph; authenticated users may read it (reference data), never write it.
+
+## Order state machine
+
+An order changes status **only** via `public.transition_order(order_id, new_status, payload)`.
+It is enforced end-to-end:
+
+- **Legal moves only** — the move must exist in the `order_transitions` graph
+  (`DRAFT → SUBMITTED → QUOTED → PAYMENT_HELD → ASSIGNED → IN_PROGRESS →
+  DESIGNER_SUBMITTED → QC_REVIEW → CLIENT_PREVIEW → APPROVED → DELIVERED → CLOSED
+  → PAYOUT_RELEASED`, plus CANCELLED/DISPUTED/REFUNDED exits).
+- **Right role + right party** — the caller's role (`app.current_user_role()`)
+  must match, and for CLIENT_PARTY/DESIGNER_PARTY moves they must be the order's
+  client / assigned designer. Identity comes from the verified token.
+- **Audited** — each move appends an `ORDER_STATUS_CHANGED` entry; `create_order`
+  appends `ORDER_CREATED`. Atomic with the status change.
+
+The transition matrix is a **first cut** (data-driven, easy to revise).
 
 ## Audit log (append-only, hash-chained)
 
