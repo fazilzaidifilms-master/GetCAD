@@ -314,3 +314,27 @@ stays valid.
 > Flagged: applying as a designer changes the user's role (audited). The
 > agreement document is a placeholder (version string only) — the gate is
 > modelled now, the legal content wires in later.
+
+---
+
+# Order UI (Slice 10)
+
+## O — The order screen only offers legal moves
+
+**Automated (deterministic):** `core/orders/availableTransitions.test.ts` — the
+pure `availableTransitions(status, graph, actor)` returns exactly the legal next
+moves for the actor's role + party (e.g. a client on their DRAFT order →
+`SUBMITTED`, `CANCELLED`; a non-party client → nothing). The buttons are built
+from this, so the UI never offers an illegal move; the DB still enforces it.
+
+**Manual (browser):** on `/orders`, signed in as a client:
+1. Enter a product type, click **New order** → a `DRAFT` order appears with
+   **SUBMITTED** / **CANCELLED** buttons.
+2. Click **SUBMITTED** → status becomes `SUBMITTED`.
+3. In Supabase, `select * from audit.audit_log order by seq desc limit 2;` shows
+   `ORDER_CREATED` then `ORDER_STATUS_CHANGED`.
+
+> Flagged: this is the **client** order screen (fully clickable with today's
+> RLS). Staff (sales/ops/finance) and designer screens need their own order-read
+> access — a later slice. Browser flow isn't CI-deterministic; the pure action
+> logic is unit-tested.

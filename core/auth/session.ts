@@ -8,7 +8,7 @@
  */
 
 /** Path prefixes that require an authenticated session. */
-export const PROTECTED_PREFIXES = ["/dashboard"] as const;
+export const PROTECTED_PREFIXES = ["/dashboard", "/orders"] as const;
 
 /** True if `pathname` is behind auth. Matches a prefix exactly or as a segment. */
 export function isProtectedPath(pathname: string): boolean {
