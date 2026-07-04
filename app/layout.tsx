@@ -38,6 +38,9 @@ export default function RootLayout({
                 <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
                   Dashboard
                 </Link>
+                <Link href="/orders" className="text-muted-foreground hover:text-foreground">
+                  Orders
+                </Link>
                 <UserButton />
               </SignedIn>
             </nav>

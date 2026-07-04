@@ -11,3 +11,5 @@ export type {
   VerifyClerkTokenOptions,
 } from "./auth/verifyClerkToken";
 export { isProtectedPath, PROTECTED_PREFIXES } from "./auth/session";
+export { availableTransitions } from "./orders/availableTransitions";
+export type { TransitionRow, ActorContext } from "./orders/availableTransitions";

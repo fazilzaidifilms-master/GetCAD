@@ -10,6 +10,11 @@ describe("isProtectedPath", () => {
     expect(isProtectedPath("/dashboard/orders/123")).toBe(true);
   });
 
+  it("protects the orders area too", () => {
+    expect(isProtectedPath("/orders")).toBe(true);
+    expect(isProtectedPath("/orders/abc")).toBe(true);
+  });
+
   it("leaves public paths open", () => {
     expect(isProtectedPath("/")).toBe(false);
     expect(isProtectedPath("/sign-in")).toBe(false);
