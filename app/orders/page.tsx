@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 import { createOrderAction, transitionAction } from "./actions";
+import { uploadFileAction } from "./fileActions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,14 @@ interface OrderRow {
   designer_id: string | null;
 }
 
+interface VersionRow {
+  id: string;
+  order_id: string;
+  version_no: number;
+  content_type: string;
+  size_bytes: number;
+}
+
 export default async function OrdersPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
@@ -25,18 +34,23 @@ export default async function OrdersPage() {
   const supabase = await createUserSupabaseClient();
   await supabase.rpc("ensure_self"); // ensure the caller has a users row
 
-  const [meRes, ordersRes, transitionsRes] = await Promise.all([
+  const [meRes, ordersRes, transitionsRes, versionsRes] = await Promise.all([
     supabase.from("users").select("role").maybeSingle(),
     supabase
       .from("orders")
       .select("id, product_type, status, client_id, designer_id")
       .order("created_at", { ascending: false }),
     supabase.from("order_transitions").select("from_status, to_status, actor_role, actor_scope"),
+    supabase
+      .from("file_versions")
+      .select("id, order_id, version_no, content_type, size_bytes")
+      .order("version_no", { ascending: false }),
   ]);
 
   const role: string = meRes.data?.role ?? "CLIENT";
   const orders = (ordersRes.data ?? []) as OrderRow[];
   const transitions = (transitionsRes.data ?? []) as TransitionRow[];
+  const versions = (versionsRes.data ?? []) as VersionRow[];
 
   return (
     <main className="container max-w-2xl py-12">
@@ -67,6 +81,8 @@ export default async function OrdersPage() {
             isOrderClient: o.client_id === userId,
             isOrderDesigner: o.designer_id === userId,
           });
+          const isParticipant = o.client_id === userId || o.designer_id === userId;
+          const orderVersions = versions.filter((v) => v.order_id === o.id);
           return (
             <li key={o.id} className="rounded-lg border p-4">
               <div className="flex items-center justify-between gap-4">
@@ -99,6 +115,45 @@ export default async function OrdersPage() {
                   ))}
                 </div>
               </div>
+
+              {(orderVersions.length > 0 || isParticipant) && (
+                <div className="mt-3 border-t pt-3">
+                  <p className="text-xs text-muted-foreground">Files</p>
+                  <ul className="mt-1 space-y-1">
+                    {orderVersions.map((v) => (
+                      <li key={v.id} className="flex items-center justify-between text-sm">
+                        <span>
+                          v{v.version_no} · <span className="text-muted-foreground">{v.content_type}</span>
+                        </span>
+                        <a
+                          href={`/api/files/${v.id}`}
+                          className="text-xs text-muted-foreground underline hover:text-foreground"
+                        >
+                          Download
+                        </a>
+                      </li>
+                    ))}
+                    {orderVersions.length === 0 && (
+                      <li className="text-xs text-muted-foreground">No files yet.</li>
+                    )}
+                  </ul>
+                  {isParticipant && (
+                    <form action={uploadFileAction} className="mt-2 flex items-center gap-2">
+                      <input type="hidden" name="order_id" value={o.id} />
+                      <input
+                        type="file"
+                        name="file"
+                        required
+                        className="text-xs"
+                        aria-label="Upload a file"
+                      />
+                      <Button type="submit" variant="outline" size="sm">
+                        Upload
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )}
             </li>
           );
         })}
