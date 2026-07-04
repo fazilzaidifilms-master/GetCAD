@@ -6,10 +6,21 @@ import { availableTransitions, type TransitionRow } from "@/core";
 import { Button } from "@/components/ui/button";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
-import { createOrderAction, transitionAction } from "./actions";
+import {
+  createOrderAction,
+  transitionAction,
+  quoteAction,
+  holdEscrowAction,
+  releaseEscrowAction,
+  refundEscrowAction,
+} from "./actions";
 import { uploadFileAction } from "./fileActions";
 
 export const dynamic = "force-dynamic";
+
+// Money-bearing statuses are driven by the escrow functions, not the generic
+// transition buttons — transition_order refuses them.
+const MONEY_TARGETS = new Set(["QUOTED", "PAYMENT_HELD", "PAYOUT_RELEASED", "REFUNDED"]);
 
 interface OrderRow {
   id: string;
@@ -17,6 +28,11 @@ interface OrderRow {
   status: string;
   client_id: string;
   designer_id: string | null;
+  currency: string;
+  price_total: number;
+  designer_payout: number;
+  qc_payout: number;
+  platform_commission: number;
 }
 
 interface VersionRow {
@@ -27,6 +43,20 @@ interface VersionRow {
   size_bytes: number;
 }
 
+interface LedgerRow {
+  order_id: string;
+  kind: "HOLD" | "RELEASE" | "REFUND";
+  amount: number;
+}
+
+function formatMoney(minor: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(minor / 100);
+  } catch {
+    return `${(minor / 100).toFixed(2)} ${currency}`;
+  }
+}
+
 export default async function OrdersPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
@@ -34,23 +64,32 @@ export default async function OrdersPage() {
   const supabase = await createUserSupabaseClient();
   await supabase.rpc("ensure_self"); // ensure the caller has a users row
 
-  const [meRes, ordersRes, transitionsRes, versionsRes] = await Promise.all([
+  const [meRes, ordersRes, transitionsRes, versionsRes, ledgerRes] = await Promise.all([
     supabase.from("users").select("role").maybeSingle(),
     supabase
       .from("orders")
-      .select("id, product_type, status, client_id, designer_id")
+      .select(
+        "id, product_type, status, client_id, designer_id, currency, price_total, designer_payout, qc_payout, platform_commission",
+      )
       .order("created_at", { ascending: false }),
     supabase.from("order_transitions").select("from_status, to_status, actor_role, actor_scope"),
     supabase
       .from("file_versions")
       .select("id, order_id, version_no, content_type, size_bytes")
       .order("version_no", { ascending: false }),
+    supabase.from("escrow_ledger").select("order_id, kind, amount"),
   ]);
 
   const role: string = meRes.data?.role ?? "CLIENT";
   const orders = (ordersRes.data ?? []) as OrderRow[];
   const transitions = (transitionsRes.data ?? []) as TransitionRow[];
   const versions = (versionsRes.data ?? []) as VersionRow[];
+  const ledger = (ledgerRes.data ?? []) as LedgerRow[];
+
+  const heldFor = (orderId: string): number =>
+    ledger
+      .filter((l) => l.order_id === orderId)
+      .reduce((net, l) => net + (l.kind === "HOLD" ? l.amount : -l.amount), 0);
 
   return (
     <main className="container max-w-2xl py-12">
@@ -80,9 +119,11 @@ export default async function OrdersPage() {
             role,
             isOrderClient: o.client_id === userId,
             isOrderDesigner: o.designer_id === userId,
-          });
+          }).filter((to) => !MONEY_TARGETS.has(to));
           const isParticipant = o.client_id === userId || o.designer_id === userId;
+          const isOrderClient = o.client_id === userId;
           const orderVersions = versions.filter((v) => v.order_id === o.id);
+          const held = heldFor(o.id);
           return (
             <li key={o.id} className="rounded-lg border p-4">
               <div className="flex items-center justify-between gap-4">
@@ -115,6 +156,91 @@ export default async function OrdersPage() {
                   ))}
                 </div>
               </div>
+
+              {(() => {
+                const canQuote = role === "SALES" && o.status === "SUBMITTED";
+                const canFund = isOrderClient && o.status === "QUOTED";
+                const canRelease = role === "FINANCE" && o.status === "CLOSED";
+                const canRefund =
+                  role === "FINANCE" && (o.status === "PAYMENT_HELD" || o.status === "DISPUTED");
+                const show =
+                  o.price_total > 0 || canQuote || canFund || canRelease || canRefund;
+                if (!show) return null;
+                return (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-xs text-muted-foreground">Money</p>
+
+                    {o.price_total > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                        <li>
+                          Price: <span className="font-medium text-foreground">{formatMoney(o.price_total, o.currency)}</span>{" "}
+                          (designer {formatMoney(o.designer_payout, o.currency)} · qc{" "}
+                          {formatMoney(o.qc_payout, o.currency)} · platform{" "}
+                          {formatMoney(o.platform_commission, o.currency)})
+                        </li>
+                        {held > 0 && (
+                          <li>
+                            Held in escrow:{" "}
+                            <span className="font-medium text-foreground">{formatMoney(held, o.currency)}</span>
+                          </li>
+                        )}
+                        {o.status === "PAYOUT_RELEASED" && <li>✅ Funds released to payout legs.</li>}
+                        {o.status === "REFUNDED" && <li>↩️ Funds refunded to the client.</li>}
+                      </ul>
+                    )}
+
+                    <div className="mt-2 flex flex-wrap items-end gap-2">
+                      {canQuote && (
+                        <form action={quoteAction} className="flex flex-wrap items-end gap-2">
+                          <input type="hidden" name="order_id" value={o.id} />
+                          <label className="text-xs">
+                            Total
+                            <input name="price_total" type="number" min="1" required
+                              className="mt-0.5 block w-24 rounded-md border px-2 py-1 text-xs" />
+                          </label>
+                          <label className="text-xs">
+                            Designer
+                            <input name="designer_payout" type="number" min="0" defaultValue="0" required
+                              className="mt-0.5 block w-24 rounded-md border px-2 py-1 text-xs" />
+                          </label>
+                          <label className="text-xs">
+                            QC
+                            <input name="qc_payout" type="number" min="0" defaultValue="0" required
+                              className="mt-0.5 block w-20 rounded-md border px-2 py-1 text-xs" />
+                          </label>
+                          <Button type="submit" variant="outline" size="sm">
+                            Quote (minor units)
+                          </Button>
+                        </form>
+                      )}
+                      {canFund && (
+                        <form action={holdEscrowAction}>
+                          <input type="hidden" name="order_id" value={o.id} />
+                          <Button type="submit" size="sm">
+                            Fund escrow — pay {formatMoney(o.price_total, o.currency)}
+                          </Button>
+                        </form>
+                      )}
+                      {canRelease && (
+                        <form action={releaseEscrowAction}>
+                          <input type="hidden" name="order_id" value={o.id} />
+                          <Button type="submit" size="sm">
+                            Release payout
+                          </Button>
+                        </form>
+                      )}
+                      {canRefund && (
+                        <form action={refundEscrowAction}>
+                          <input type="hidden" name="order_id" value={o.id} />
+                          <Button type="submit" variant="outline" size="sm">
+                            Refund client
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {(orderVersions.length > 0 || isParticipant) && (
                 <div className="mt-3 border-t pt-3">
