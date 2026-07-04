@@ -41,6 +41,12 @@ export default function RootLayout({
                 <Link href="/orders" className="text-muted-foreground hover:text-foreground">
                   Orders
                 </Link>
+                <Link
+                  href="/onboarding/designer"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Become a designer
+                </Link>
                 <UserButton />
               </SignedIn>
             </nav>

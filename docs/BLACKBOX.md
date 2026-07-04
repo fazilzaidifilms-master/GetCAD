@@ -444,3 +444,27 @@ by the same RLS as their order.
    version, never an edit.
 5. Publishing **v2 re-gates** a designer who signed v1 (not assignable until they
    sign v2); the v1 signature stays on file. The audit chain stays valid.
+
+## T — Designer onboarding + signing UI (Slice 13b, manual)
+
+> Clerk + Storage-independent but auth-dependent, so a manual browser test. The
+> DB enforcement it drives is already proven deterministically in Test S.
+
+**Setup:** apply the consolidated designer-licensing SQL live (Slice 9 + 13),
+so `agreement_documents` has a `DESIGNER / v1` row. Sign in.
+
+**Steps** (on `/onboarding/designer`):
+1. **Apply** — fill legal name + email, submit. You become `DESIGNER / PENDING`
+   (audited `DESIGNER_APPLIED`); the page now shows the agreement text.
+2. **Sign** — read the rendered agreement, click "I have read and agree — sign".
+   The hidden fingerprint is passed to `accept_designer_agreement`; you flip to
+   `ACTIVE` (audited `SIGNED_AGREEMENT` with version + fingerprint) and the page
+   shows the onboarded state.
+3. **Gate** — before step 2, ops assigning you to an order fails ("not
+   assignable"); after step 2 it succeeds (Test S covers this deterministically).
+4. **Re-gate** — publish a `v2` document row; the page returns to the "sign"
+   state (you must re-sign) while your `v1` signature remains on file.
+
+**What it proves:** the whole licensing loop is reachable from the UI — apply →
+read the real versioned document → sign against its fingerprint → become
+assignable — with every step audited and gated by the DB.
