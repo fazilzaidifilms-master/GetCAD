@@ -20,6 +20,7 @@ leaves no reviewable, replayable history.
   - `0009_designer_onboarding_gate.sql` — gated designer onboarding: `apply_as_designer()`, `accept_designer_agreement()` (audited), `app.designer_is_assignable()`; `transition_order`'s ASSIGNED step enforces the gate.
   - `0010_file_versions.sql` — `file_versions` (opaque keys only) + `public.add_file_version()` (audited, sets `orders.current_version_id`). Every key comes from the single sanitization gate (`core/files`).
   - `0011_legal_agreements.sql` — the real document behind the gate: `agreement_documents` (immutable, versioned, `content_sha256`-fingerprinted) + `agreement_acceptances` (immutable signatures); `app.current_agreement()`; `accept_designer_agreement()` now verifies the fingerprint and records a signature; the gate requires acceptance of the **current** version (new version ⇒ auto re-gate).
+  - `0012_escrow.sql` — the money layer: append-only `escrow_ledger` (HOLD/RELEASE/REFUND) + `app.escrow_held()`; `quote_order()` (SALES, conserving split), `hold_escrow()` (client), `release_escrow()` / `refund_escrow()` (FINANCE). Money-bearing status changes live ONLY here; `transition_order` refuses `QUOTED`/`PAYMENT_HELD`/`PAYOUT_RELEASED`/`REFUNDED` so status and money can't diverge. **Money is conserved** (split sums to total; release legs sum to held; one HOLD per order).
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -29,6 +30,7 @@ leaves no reviewable, replayable history.
   - `0006_staff_order_read.sql` — staff order visibility tied to the state machine (a role reads an order only when it has a legal move on it); orders carry no identity, so not an identity-piercing read.
   - `0007_file_versions_rls.sql` — you can read a file version only if you can read its order (inherits order visibility).
   - `0008_legal_agreements_rls.sql` — agreement documents readable by any authenticated user (you must read what you sign); signatures readable only by their signer; all writes go through `accept_designer_agreement()` (no direct-write policy).
+  - `0009_escrow_rls.sql` — you can read an order's escrow ledger only if you can read the order (inherits order visibility); all writes go through the escrow functions (no direct-write policy).
 
 ## Order state machine
 
