@@ -525,3 +525,23 @@ ledger + audit log (Test U covers the invariants).
 4. Posting is audited (`MESSAGE_POSTED`); messages are append-only (update/delete
    rejected); threads are order-scoped (an unrelated order's client sees none);
    the audit chain stays valid.
+
+## X — Double-blind chat UI (Slice 15b, manual)
+
+> Auth-dependent UI, so a manual browser test with two sessions. The structural
+> guarantee (no identity in the schema; double-blind holds) is proven in Test W.
+
+**Setup:** apply the messaging SQL live (`0013` migration + `0010` policy). Have
+an order at `ASSIGNED`+ with a real client and assigned designer. Open two
+sessions: one signed in as the client, one as the assigned designer.
+
+**Steps** (on `/orders`, the order's **Messages** section):
+1. As the **client**, type a message → Send. It appears labeled **You**.
+2. In the **designer** session, refresh → the same message appears labeled
+   **Client** (never a name/email). Reply → shows **You** to the designer.
+3. Back as the **client**, refresh → the reply appears labeled **Designer**.
+4. Neither side's screen ever shows the other's identity — only the role label.
+
+**What it proves:** the two blinded parties can converse end-to-end through the
+UI, each seeing the other purely as "Client"/"Designer", with every message
+recorded in the append-only, audited thread (Test W covers the invariants).

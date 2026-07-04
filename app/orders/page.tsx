@@ -13,6 +13,7 @@ import {
   holdEscrowAction,
   releaseEscrowAction,
   refundEscrowAction,
+  postMessageAction,
 } from "./actions";
 import { uploadFileAction } from "./fileActions";
 
@@ -49,6 +50,15 @@ interface LedgerRow {
   amount: number;
 }
 
+interface MessageRow {
+  id: string;
+  order_id: string;
+  sender_id: string; // opaque; only used to detect "You" — never displayed
+  sender_party: "CLIENT" | "DESIGNER";
+  body: string;
+  created_at: string;
+}
+
 function formatMoney(minor: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(minor / 100);
@@ -64,7 +74,8 @@ export default async function OrdersPage() {
   const supabase = await createUserSupabaseClient();
   await supabase.rpc("ensure_self"); // ensure the caller has a users row
 
-  const [meRes, ordersRes, transitionsRes, versionsRes, ledgerRes] = await Promise.all([
+  const [meRes, ordersRes, transitionsRes, versionsRes, ledgerRes, messagesRes] =
+    await Promise.all([
     supabase.from("users").select("role").maybeSingle(),
     supabase
       .from("orders")
@@ -78,6 +89,10 @@ export default async function OrdersPage() {
       .select("id, order_id, version_no, content_type, size_bytes")
       .order("version_no", { ascending: false }),
     supabase.from("escrow_ledger").select("order_id, kind, amount"),
+    supabase
+      .from("messages")
+      .select("id, order_id, sender_id, sender_party, body, created_at")
+      .order("created_at", { ascending: true }),
   ]);
 
   const role: string = meRes.data?.role ?? "CLIENT";
@@ -85,6 +100,7 @@ export default async function OrdersPage() {
   const transitions = (transitionsRes.data ?? []) as TransitionRow[];
   const versions = (versionsRes.data ?? []) as VersionRow[];
   const ledger = (ledgerRes.data ?? []) as LedgerRow[];
+  const messages = (messagesRes.data ?? []) as MessageRow[];
 
   const heldFor = (orderId: string): number =>
     ledger
@@ -123,6 +139,7 @@ export default async function OrdersPage() {
           const isParticipant = o.client_id === userId || o.designer_id === userId;
           const isOrderClient = o.client_id === userId;
           const orderVersions = versions.filter((v) => v.order_id === o.id);
+          const orderMessages = messages.filter((m) => m.order_id === o.id);
           const held = heldFor(o.id);
           return (
             <li key={o.id} className="rounded-lg border p-4">
@@ -275,6 +292,55 @@ export default async function OrdersPage() {
                       />
                       <Button type="submit" variant="outline" size="sm">
                         Upload
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {(orderMessages.length > 0 || isParticipant) && (
+                <div className="mt-3 border-t pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    Messages{" "}
+                    <span className="text-muted-foreground/70">
+                      (identities are never shown — only your counterparty&apos;s role)
+                    </span>
+                  </p>
+                  <ul className="mt-2 space-y-2">
+                    {orderMessages.length === 0 && (
+                      <li className="text-xs text-muted-foreground">No messages yet.</li>
+                    )}
+                    {orderMessages.map((m) => {
+                      const mine = m.sender_id === userId;
+                      const who = mine ? "You" : m.sender_party === "CLIENT" ? "Client" : "Designer";
+                      return (
+                        <li key={m.id} className={mine ? "text-right" : "text-left"}>
+                          <div
+                            className={`inline-block max-w-[85%] rounded-lg border px-3 py-2 text-left text-sm ${
+                              mine ? "bg-muted" : ""
+                            }`}
+                          >
+                            <p className="text-xs font-medium text-muted-foreground">{who}</p>
+                            <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {isParticipant && (
+                    <form action={postMessageAction} className="mt-2 flex items-end gap-2">
+                      <input type="hidden" name="order_id" value={o.id} />
+                      <textarea
+                        name="body"
+                        required
+                        rows={2}
+                        maxLength={5000}
+                        placeholder="Write a message…"
+                        className="flex-1 rounded-md border px-3 py-2 text-sm"
+                        aria-label="Message body"
+                      />
+                      <Button type="submit" size="sm">
+                        Send
                       </Button>
                     </form>
                   )}
