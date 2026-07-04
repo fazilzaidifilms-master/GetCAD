@@ -425,3 +425,20 @@ Restart `npm run dev`.
 **What it proves:** files flow through the single gate, are stored under opaque
 keys, are never public, and are reachable only via short-lived signed URLs gated
 by the same RLS as their order.
+
+## S — Legal document signing (Slice 13a, deterministic)
+
+> `tests/db/legal_signing.test.ts`. Wires the real, versioned agreement behind
+> the designer gate (Slice 9 stored only a placeholder version).
+
+**What it proves:**
+1. A `DESIGNER` agreement is published and its stored `content_sha256` equals
+   `sha256(body)` — the fingerprint cannot lie.
+2. Signing with a **wrong/stale fingerprint** is rejected ("changed since you
+   loaded it") and records nothing.
+3. A correct signature is **immutable** (UPDATE/DELETE rejected), **audited** with
+   the version + fingerprint, and flips the designer to assignable.
+4. A **published document is immutable** (UPDATE rejected) — a correction is a new
+   version, never an edit.
+5. Publishing **v2 re-gates** a designer who signed v1 (not assignable until they
+   sign v2); the v1 signature stays on file. The audit chain stays valid.
