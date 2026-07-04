@@ -23,11 +23,15 @@ export async function createOrderAction(formData: FormData): Promise<void> {
 export async function transitionAction(formData: FormData): Promise<void> {
   const orderId = formData.get("order_id")?.toString() ?? "";
   const toStatus = formData.get("to_status")?.toString() ?? "";
+  // ASSIGNED needs the designer's OPAQUE id (no identity is read here).
+  const designerId = formData.get("designer_id")?.toString().trim();
+  const payload = designerId ? { designer_id: designerId } : {};
+
   const supabase = await createUserSupabaseClient();
   const { error } = await supabase.rpc("transition_order", {
     p_order_id: orderId,
     p_new_status: toStatus,
-    p_payload: {},
+    p_payload: payload,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/orders");

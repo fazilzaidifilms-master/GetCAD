@@ -81,9 +81,17 @@ export default async function OrdersPage() {
                     <span className="text-xs text-muted-foreground">no actions</span>
                   )}
                   {actions.map((to) => (
-                    <form key={to} action={transitionAction}>
+                    <form key={to} action={transitionAction} className="flex items-center gap-1">
                       <input type="hidden" name="order_id" value={o.id} />
                       <input type="hidden" name="to_status" value={to} />
+                      {to === "ASSIGNED" && (
+                        <input
+                          name="designer_id"
+                          placeholder="designer id"
+                          className="w-28 rounded-md border px-2 py-1 text-xs"
+                          aria-label="Designer id to assign"
+                        />
+                      )}
                       <Button type="submit" variant="outline" size="sm">
                         {to}
                       </Button>

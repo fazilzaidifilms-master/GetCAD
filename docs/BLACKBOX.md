@@ -338,3 +338,32 @@ from this, so the UI never offers an illegal move; the DB still enforces it.
 > RLS). Staff (sales/ops/finance) and designer screens need their own order-read
 > access — a later slice. Browser flow isn't CI-deterministic; the pure action
 > logic is unit-tested.
+
+---
+
+# Staff / designer order screens (Slice 11)
+
+## P — Staff see only orders they can act on
+
+Automated (deterministic, pure DB): `tests/db/staff_order_visibility.test.ts`.
+
+A STAFF-role user can READ an order exactly when their role has a legal move out
+of its current status (from `order_transitions`). Orders carry no identity, so
+this is not an identity-piercing read.
+
+```sql
+-- as sales (request.jwt.claims -> a SALES user's sub):
+select id, status from orders;   -- only SUBMITTED orders (its quote queue)
+-- as ops:   only PAYMENT_HELD / DESIGNER_SUBMITTED / APPROVED / DELIVERED / DISPUTED
+-- as finance: only CLOSED / PAYMENT_HELD / DISPUTED
+```
+
+**Proves:** sales sees SUBMITTED, ops sees PAYMENT_HELD, finance sees CLOSED +
+PAYMENT_HELD; none see states they can't act on; clients still see only their own.
+
+**Browser:** signed in as each staff role, `/orders` shows that role's queue with
+the allowed action buttons; ASSIGN takes the designer's **opaque id**.
+
+> Flagged: visibility = "you can act on it now" (state-machine-tied). Assigning
+> uses an opaque designer id — an audited designer-roster/picker (which reveals
+> identity) is a separate slice. Designers already see their assigned orders.
