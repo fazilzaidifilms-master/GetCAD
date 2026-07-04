@@ -108,18 +108,21 @@ describe("Test M — legal, role-gated, audited order transitions", () => {
     expect(await statusOf(order)).toBe("SUBMITTED"); // unchanged
   });
 
-  it("rejects a WRONG-ROLE move (a client cannot QUOTE)", async () => {
-    await expect(transition(client, order, "QUOTED")).rejects.toThrow(/illegal transition/i);
+  it("refuses money-bearing transitions via transition_order (must use money functions)", async () => {
+    await expect(transition(client, order, "QUOTED")).rejects.toThrow(/money-bearing transition/i);
     expect(await statusOf(order)).toBe("SUBMITTED");
   });
 
-  it("SALES can quote it (SUBMITTED -> QUOTED)", async () => {
-    await transition(sales, order, "QUOTED");
+  it("SALES can quote it (SUBMITTED -> QUOTED) via quote_order", async () => {
+    await asUser(sales, () =>
+      db.query("SELECT public.quote_order($1,$2,$3,$4,$5)", [order, 10000, 6000, 1000, 3000]),
+    );
     expect(await statusOf(order)).toBe("QUOTED");
   });
 
   it("walks the happy path through roles: pay -> assign -> start", async () => {
-    await transition(client, order, "PAYMENT_HELD");
+    // The client funds escrow (QUOTED -> PAYMENT_HELD) via hold_escrow.
+    await asUser(client, () => db.query("SELECT public.hold_escrow($1)", [order]));
     expect(await statusOf(order)).toBe("PAYMENT_HELD");
 
     // OPS assigns a specific designer (sets designer_id)
@@ -146,7 +149,7 @@ describe("Test M — legal, role-gated, audited order transitions", () => {
   });
 
   it("every accepted move was audited and the chain stays valid", async () => {
-    // ORDER_CREATED + SUBMITTED + QUOTED + PAYMENT_HELD + ASSIGNED + IN_PROGRESS = 6
+    // ORDER_CREATED + SUBMITTED + ORDER_QUOTED + ESCROW_HELD + ASSIGNED + IN_PROGRESS = 6
     expect(await orderAuditCount(order)).toBe(6);
     const v = await db.query("SELECT audit.verify_chain() AS v");
     expect(v.rows[0].v.valid).toBe(true);

@@ -468,3 +468,21 @@ so `agreement_documents` has a `DESIGNER / v1` row. Sign in.
 **What it proves:** the whole licensing loop is reachable from the UI — apply →
 read the real versioned document → sign against its fingerprint → become
 assignable — with every step audited and gated by the DB.
+
+## U — Escrow ledger + money conservation (Slice 14a, deterministic)
+
+> `tests/db/escrow.test.ts`. The money layer: quote → hold → release | refund,
+> recorded in an append-only ledger. Money-bearing status changes live ONLY in
+> the money functions; `transition_order` refuses them.
+
+**What it proves:**
+1. A quote whose split doesn't sum to the total is rejected; a conserving quote
+   (SALES only) sets the money + `QUOTED`.
+2. Holding (the order's client only) records the full price, flips to
+   `PAYMENT_HELD`, and cannot happen twice.
+3. Releasing (FINANCE only) records payout legs that **sum exactly to the held
+   amount**, flips to `PAYOUT_RELEASED`, and leaves net held = 0.
+4. Refunding (FINANCE only) returns the held amount, flips to `REFUNDED`, net
+   held = 0; release is then impossible (mutually exclusive).
+5. Every movement is audited (`ORDER_QUOTED`/`ESCROW_HELD`/`ESCROW_RELEASED`/
+   `ESCROW_REFUNDED`); the ledger is append-only; the audit chain stays valid.
