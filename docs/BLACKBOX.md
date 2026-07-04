@@ -508,3 +508,20 @@ with users of the relevant roles (SALES, the order's CLIENT, FINANCE).
 **What it proves:** the whole money loop is reachable from the UI, each control
 gated to the right role + state, and every movement recorded in the append-only
 ledger + audit log (Test U covers the invariants).
+
+## W — Double-blind messaging (Slice 15a, deterministic)
+
+> `tests/db/messaging.test.ts`. A per-order thread between the client and the
+> assigned designer that structurally cannot leak identity.
+
+**What it proves:**
+1. The client and the assigned designer can post; the party label is DERIVED from
+   who they are (never from the client). A non-participant cannot post; an empty
+   message is rejected.
+2. Messages carry NO identity — the table has only `id/order_id/sender_id
+   (opaque)/sender_party/body/created_at`; no name/email/avatar.
+3. A participant reads the thread but STILL cannot read the counterparty's
+   identity row (`designer_profiles` → 0 rows): the double-blind holds.
+4. Posting is audited (`MESSAGE_POSTED`); messages are append-only (update/delete
+   rejected); threads are order-scoped (an unrelated order's client sees none);
+   the audit chain stays valid.
