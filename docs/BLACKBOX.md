@@ -246,3 +246,38 @@ was created and audited on first load.
 > Flagged: a self-signup defaults to CLIENT / ACTIVE (placeholder); staff and
 > designers are provisioned by other paths, and a real flow may use PENDING +
 > verification.
+
+---
+
+# Order state machine (Slice 8)
+
+## M — Legal, role-gated, audited transitions
+
+Automated (deterministic, pure DB): `tests/db/order_state_machine.test.ts`.
+
+An order changes status only through `public.transition_order()`, which enforces
+the `order_transitions` graph, the caller's role/party, and writes an audit
+entry — atomically. `public.create_order()` creates a DRAFT order (audited).
+
+```sql
+-- as a client (set request.jwt.claims to their sub, role authenticated):
+select public.create_order('ord1','CAD_MODEL');            -- -> DRAFT (ORDER_CREATED)
+select public.transition_order('ord1','SUBMITTED');        -- -> SUBMITTED (audited)
+select public.transition_order('ord1','APPROVED');         -- ERROR: illegal transition
+select public.transition_order('ord1','QUOTED');           -- ERROR: illegal transition (wrong role)
+
+-- as sales:
+select public.transition_order('ord1','QUOTED');           -- -> QUOTED
+
+-- a non-participant client:
+select public.transition_order('someone-elses-order','SUBMITTED');  -- ERROR: not the client of this order
+
+select audit.verify_chain();   -- {"valid": true, ...} — every move logged
+```
+
+**Proves:** legal moves succeed and are audited; illegal jumps, wrong-role moves,
+and non-participants are all rejected; the audit chain stays valid.
+
+> Flagged: the transition matrix (who may do what, when) is a first cut in
+> `order_transitions`, easy to review/revise. Real pricing/escrow (money fields
+> at QUOTED) and the order UI are later slices.
