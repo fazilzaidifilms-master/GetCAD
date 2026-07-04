@@ -85,7 +85,7 @@ describe("Test S — legal document signing", () => {
 
     const a = await db.query(
       `SELECT payload FROM audit.audit_log
-       WHERE entity_id = $1 AND action = 'DESIGNER_AGREEMENT_ACCEPTED'`,
+       WHERE entity_id = $1 AND action = 'SIGNED_AGREEMENT'`,
       [designerU],
     );
     expect(a.rows).toHaveLength(1);

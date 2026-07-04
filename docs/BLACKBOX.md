@@ -300,20 +300,22 @@ select public.apply_as_designer('dp1','Dana','dana@studio.example');  -- DESIGNE
 select public.transition_order('ord1','ASSIGNED','{"designer_id":"<designer>"}');
 -- ERROR: designer is not assignable: must be an ACTIVE designer who has accepted the agreement
 
--- as the designer, accept:
-select public.accept_designer_agreement('UNWIRED_V0');  -- ACTIVE (audited DESIGNER_AGREEMENT_ACCEPTED)
+-- as the designer, sign the CURRENT agreement (pass its fingerprint):
+select public.accept_designer_agreement(
+  (select content_sha256 from app.current_agreement('DESIGNER'))
+);  -- ACTIVE (audited SIGNED_AGREEMENT)
 
 -- as ops, assign again:
 select public.transition_order('ord1','ASSIGNED','{"designer_id":"<designer>"}');  -- -> ASSIGNED
 ```
 
-**Proves:** an unaccepted designer is blocked from assignment; accepting is
-audited and flips them to assignable; a non-designer cannot accept; the chain
+**Proves:** an unsigned designer is blocked from assignment; signing is
+audited and flips them to assignable; a non-designer cannot sign; the chain
 stays valid.
 
 > Flagged: applying as a designer changes the user's role (audited). The
-> agreement document is a placeholder (version string only) — the gate is
-> modelled now, the legal content wires in later.
+> agreement document is now real and versioned (Slice 13 / Test S) — the gate
+> requires a signature against the current version.
 
 ---
 

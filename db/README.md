@@ -54,9 +54,9 @@ The transition matrix is a **first cut** (data-driven, easy to revise).
 - **Designer** — gated: `public.apply_as_designer()` sets role DESIGNER /
   status PENDING and creates the identity profile (audited `DESIGNER_APPLIED`).
   The designer is **not assignable** until `public.accept_designer_agreement()`
-  records acceptance and flips them to ACTIVE (audited
-  `DESIGNER_AGREEMENT_ACCEPTED`). `transition_order`'s ASSIGNED step calls
-  `app.designer_is_assignable()` to enforce this.
+  records a signature and flips them to ACTIVE (audited `SIGNED_AGREEMENT`).
+  `transition_order`'s ASSIGNED step calls `app.designer_is_assignable()` to
+  enforce this — which checks for a real signature against the current version.
 
 > The agreement **document is now wired** (`0011`): a real, versioned
 > `agreement_documents` row is fingerprinted with `content_sha256`, and

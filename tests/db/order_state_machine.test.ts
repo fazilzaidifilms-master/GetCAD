@@ -59,13 +59,18 @@ beforeAll(async () => {
        ($3,'SALES','ACTIVE'), ($4,'OPS','ACTIVE'), ($5,'DESIGNER','ACTIVE')`,
     [client, otherClient, sales, ops, designer],
   );
-  // The designer must pass the onboarding gate (0009/0011) to be assignable: give
-  // them a profile that has accepted the CURRENT agreement version.
+  // The designer must pass the onboarding gate (0009/0011) to be assignable:
+  // a profile plus a real SIGNATURE against the current agreement version.
   await db.query(
     `INSERT INTO designer_profiles (id, user_id, legal_name, email, agreement_accepted_at, agreement_version)
      VALUES ($1, $2, 'Dana', 'dana@studio.example', now(),
              (SELECT version FROM app.current_agreement('DESIGNER')))`,
     [generateId(), designer],
+  );
+  await db.query(
+    `INSERT INTO agreement_acceptances (agreement_id, user_id, content_sha256)
+     SELECT id, $1, content_sha256 FROM app.current_agreement('DESIGNER')`,
+    [designer],
   );
 });
 

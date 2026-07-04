@@ -108,7 +108,7 @@ describe("Test N — designer agreement gate", () => {
     expect(dp.rows[0].agreement_version).toBe("v1");
 
     const a = await db.query(
-      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'DESIGNER_AGREEMENT_ACCEPTED'",
+      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'SIGNED_AGREEMENT'",
       [designerU],
     );
     expect(a.rows[0].n).toBe(1);
@@ -126,7 +126,7 @@ describe("Test N — designer agreement gate", () => {
     const hash = await currentDesignerHash();
     await asUser(designerU, () => db.query("SELECT public.accept_designer_agreement($1)", [hash]));
     const a = await db.query(
-      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'DESIGNER_AGREEMENT_ACCEPTED'",
+      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'SIGNED_AGREEMENT'",
       [designerU],
     );
     expect(a.rows[0].n).toBe(1);

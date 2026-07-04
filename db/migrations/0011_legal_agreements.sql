@@ -124,9 +124,11 @@ Acceptance is recorded with the version and a cryptographic fingerprint of this
 exact text.$doc$ AS body
 ) s;
 
--- A designer is assignable only if they are an ACTIVE designer who has accepted
--- the CURRENT agreement version. Tying to the current version means publishing a
--- new version automatically re-gates everyone until they re-accept.
+-- A designer is assignable only if they are an ACTIVE designer with a real
+-- SIGNATURE against the CURRENT agreement version. The gate reads the
+-- agreement_acceptances table directly (the single source of truth) rather than a
+-- denormalised flag, so it cannot drift. Publishing a new version changes what
+-- app.current_agreement() returns and thus re-gates everyone until they re-sign.
 CREATE OR REPLACE FUNCTION app.designer_is_assignable(p_designer_id text)
 RETURNS boolean
 LANGUAGE sql
@@ -137,14 +139,14 @@ AS $$
   SELECT EXISTS (
     SELECT 1
     FROM public.users u
-    JOIN public.designer_profiles dp ON dp.user_id = u.id
+    JOIN public.designer_profiles dp   ON dp.user_id = u.id
+    JOIN public.agreement_acceptances aa ON aa.user_id = u.id
     WHERE u.id = p_designer_id
       AND u.role = 'DESIGNER'
       AND u.status = 'ACTIVE'
       AND u.deleted_at IS NULL
       AND dp.deleted_at IS NULL
-      AND dp.agreement_accepted_at IS NOT NULL
-      AND dp.agreement_version = (SELECT version FROM app.current_agreement('DESIGNER'))
+      AND aa.agreement_id = (SELECT id FROM app.current_agreement('DESIGNER'))
   )
 $$;
 
@@ -209,7 +211,7 @@ BEGIN
     WHERE id = v_clerk_id AND role = 'DESIGNER';
 
   PERFORM audit.log_event(
-    'DESIGNER_AGREEMENT_ACCEPTED', 'user', v_clerk_id, v_clerk_id, 'DESIGNER',
+    'SIGNED_AGREEMENT', 'user', v_clerk_id, v_clerk_id, 'DESIGNER',
     jsonb_build_object('agreement_id', v_doc.id, 'agreement_version', v_doc.version,
                        'content_sha256', v_doc.content_sha256)
   );
