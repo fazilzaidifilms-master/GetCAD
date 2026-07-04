@@ -300,20 +300,22 @@ select public.apply_as_designer('dp1','Dana','dana@studio.example');  -- DESIGNE
 select public.transition_order('ord1','ASSIGNED','{"designer_id":"<designer>"}');
 -- ERROR: designer is not assignable: must be an ACTIVE designer who has accepted the agreement
 
--- as the designer, accept:
-select public.accept_designer_agreement('UNWIRED_V0');  -- ACTIVE (audited DESIGNER_AGREEMENT_ACCEPTED)
+-- as the designer, sign the CURRENT agreement (pass its fingerprint):
+select public.accept_designer_agreement(
+  (select content_sha256 from app.current_agreement('DESIGNER'))
+);  -- ACTIVE (audited SIGNED_AGREEMENT)
 
 -- as ops, assign again:
 select public.transition_order('ord1','ASSIGNED','{"designer_id":"<designer>"}');  -- -> ASSIGNED
 ```
 
-**Proves:** an unaccepted designer is blocked from assignment; accepting is
-audited and flips them to assignable; a non-designer cannot accept; the chain
+**Proves:** an unsigned designer is blocked from assignment; signing is
+audited and flips them to assignable; a non-designer cannot sign; the chain
 stays valid.
 
 > Flagged: applying as a designer changes the user's role (audited). The
-> agreement document is a placeholder (version string only) — the gate is
-> modelled now, the legal content wires in later.
+> agreement document is now real and versioned (Slice 13 / Test S) — the gate
+> requires a signature against the current version.
 
 ---
 
@@ -425,3 +427,20 @@ Restart `npm run dev`.
 **What it proves:** files flow through the single gate, are stored under opaque
 keys, are never public, and are reachable only via short-lived signed URLs gated
 by the same RLS as their order.
+
+## S — Legal document signing (Slice 13a, deterministic)
+
+> `tests/db/legal_signing.test.ts`. Wires the real, versioned agreement behind
+> the designer gate (Slice 9 stored only a placeholder version).
+
+**What it proves:**
+1. A `DESIGNER` agreement is published and its stored `content_sha256` equals
+   `sha256(body)` — the fingerprint cannot lie.
+2. Signing with a **wrong/stale fingerprint** is rejected ("changed since you
+   loaded it") and records nothing.
+3. A correct signature is **immutable** (UPDATE/DELETE rejected), **audited** with
+   the version + fingerprint, and flips the designer to assignable.
+4. A **published document is immutable** (UPDATE rejected) — a correction is a new
+   version, never an edit.
+5. Publishing **v2 re-gates** a designer who signed v1 (not assignable until they
+   sign v2); the v1 signature stays on file. The audit chain stays valid.

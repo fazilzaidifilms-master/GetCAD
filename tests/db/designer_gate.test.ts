@@ -38,6 +38,13 @@ async function statusOf(orderId: string): Promise<string> {
   return rows[0].status;
 }
 
+async function currentDesignerHash(): Promise<string> {
+  const { rows } = await db.query(
+    "SELECT content_sha256 FROM agreement_documents WHERE kind = 'DESIGNER' ORDER BY published_at DESC LIMIT 1",
+  );
+  return rows[0].content_sha256;
+}
+
 beforeAll(async () => {
   db = await connectFreshDb();
   // client + ops exist; an order sits at PAYMENT_HELD, ready to be assigned.
@@ -85,8 +92,9 @@ describe("Test N — designer agreement gate", () => {
   });
 
   it("accepting the agreement is audited and flips the designer to ACTIVE", async () => {
+    const hash = await currentDesignerHash();
     const res = await asUser(designerU, () =>
-      db.query("SELECT public.accept_designer_agreement('UNWIRED_V0') AS v"),
+      db.query("SELECT public.accept_designer_agreement($1) AS v", [hash]),
     );
     expect(res.rows[0].v.accepted).toBe(true);
 
@@ -97,10 +105,10 @@ describe("Test N — designer agreement gate", () => {
       [designerU],
     );
     expect(dp.rows[0].agreement_accepted_at).not.toBeNull();
-    expect(dp.rows[0].agreement_version).toBe("UNWIRED_V0");
+    expect(dp.rows[0].agreement_version).toBe("v1");
 
     const a = await db.query(
-      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'DESIGNER_AGREEMENT_ACCEPTED'",
+      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'SIGNED_AGREEMENT'",
       [designerU],
     );
     expect(a.rows[0].n).toBe(1);
@@ -115,17 +123,19 @@ describe("Test N — designer agreement gate", () => {
   });
 
   it("a second acceptance is idempotent (no duplicate audit entry)", async () => {
-    await asUser(designerU, () => db.query("SELECT public.accept_designer_agreement('UNWIRED_V0')"));
+    const hash = await currentDesignerHash();
+    await asUser(designerU, () => db.query("SELECT public.accept_designer_agreement($1)", [hash]));
     const a = await db.query(
-      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'DESIGNER_AGREEMENT_ACCEPTED'",
+      "SELECT count(*)::int AS n FROM audit.audit_log WHERE entity_id = $1 AND action = 'SIGNED_AGREEMENT'",
       [designerU],
     );
     expect(a.rows[0].n).toBe(1);
   });
 
   it("a non-designer cannot accept the agreement", async () => {
+    const hash = await currentDesignerHash();
     await expect(
-      asUser(clientU, () => db.query("SELECT public.accept_designer_agreement('UNWIRED_V0')")),
+      asUser(clientU, () => db.query("SELECT public.accept_designer_agreement($1)", [hash])),
     ).rejects.toThrow(/apply as a designer first/i);
   });
 

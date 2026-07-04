@@ -19,6 +19,7 @@ leaves no reviewable, replayable history.
   - `0008_order_state_machine.sql` — `order_transitions` (legal-move graph as data), `public.create_order()`, and `public.transition_order()` (role-gated, audited status changes).
   - `0009_designer_onboarding_gate.sql` — gated designer onboarding: `apply_as_designer()`, `accept_designer_agreement()` (audited), `app.designer_is_assignable()`; `transition_order`'s ASSIGNED step enforces the gate.
   - `0010_file_versions.sql` — `file_versions` (opaque keys only) + `public.add_file_version()` (audited, sets `orders.current_version_id`). Every key comes from the single sanitization gate (`core/files`).
+  - `0011_legal_agreements.sql` — the real document behind the gate: `agreement_documents` (immutable, versioned, `content_sha256`-fingerprinted) + `agreement_acceptances` (immutable signatures); `app.current_agreement()`; `accept_designer_agreement()` now verifies the fingerprint and records a signature; the gate requires acceptance of the **current** version (new version ⇒ auto re-gate).
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -27,6 +28,7 @@ leaves no reviewable, replayable history.
   - `0005_order_transitions_rls.sql` — RLS on the transition graph; authenticated users may read it (reference data), never write it.
   - `0006_staff_order_read.sql` — staff order visibility tied to the state machine (a role reads an order only when it has a legal move on it); orders carry no identity, so not an identity-piercing read.
   - `0007_file_versions_rls.sql` — you can read a file version only if you can read its order (inherits order visibility).
+  - `0008_legal_agreements_rls.sql` — agreement documents readable by any authenticated user (you must read what you sign); signatures readable only by their signer; all writes go through `accept_designer_agreement()` (no direct-write policy).
 
 ## Order state machine
 
@@ -52,13 +54,18 @@ The transition matrix is a **first cut** (data-driven, easy to revise).
 - **Designer** — gated: `public.apply_as_designer()` sets role DESIGNER /
   status PENDING and creates the identity profile (audited `DESIGNER_APPLIED`).
   The designer is **not assignable** until `public.accept_designer_agreement()`
-  records acceptance and flips them to ACTIVE (audited
-  `DESIGNER_AGREEMENT_ACCEPTED`). `transition_order`'s ASSIGNED step calls
-  `app.designer_is_assignable()` to enforce this.
+  records a signature and flips them to ACTIVE (audited `SIGNED_AGREEMENT`).
+  `transition_order`'s ASSIGNED step calls `app.designer_is_assignable()` to
+  enforce this — which checks for a real signature against the current version.
 
-> The agreement **document** is not wired yet — only a version string
-> (`UNWIRED_V0`) + acceptance timestamp are stored. The gate structure and audit
-> trail exist now; the lawyer-drafted content/signature slot in later.
+> The agreement **document is now wired** (`0011`): a real, versioned
+> `agreement_documents` row is fingerprinted with `content_sha256`, and
+> `accept_designer_agreement(expected_sha256)` verifies the caller signed the
+> current text before recording an **immutable** `agreement_acceptances` row
+> (version + fingerprint, audited). The gate requires acceptance of the **current**
+> version, so publishing a new version auto re-gates every designer until they
+> re-accept; old signatures remain as proof. Counsel-drafted text replaces the
+> starter body as a new version — the seeded `v1` body is never edited in place.
 
 ## Audit log (append-only, hash-chained)
 
