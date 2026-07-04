@@ -402,3 +402,26 @@ can read a version only if you can read its order); chain stays valid.
 > Part (b) wires real upload/download to Supabase Storage with **signed
 > short-TTL URLs** (calling this gate on the real bytes) — its end-to-end check is
 > a manual browser test.
+
+## R — Upload/download through the gate (part b, manual)
+
+> Storage-dependent, so this is a manual browser test. The gate logic it relies
+> on is already proven deterministically in Q1.
+
+**Setup:** create a **private** Supabase Storage bucket named `order-files`
+(Dashboard → Storage → New bucket, "Public" OFF). Add
+`SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Settings → API → service_role).
+Restart `npm run dev`.
+
+**Steps** (on `/orders`, as a participant of an order):
+1. Under an order's **Files**, choose a valid file (PDF/PNG) and **Upload**.
+2. A version `v1` appears; `orders.current_version_id` moves to it; the audit log
+   gains `FILE_VERSION_ADDED`. The stored object name is an **opaque id**, not the
+   original filename.
+3. Click **Download** → you're redirected to a **short-TTL signed URL**
+   (`?token=…`, expires in ~60s). A logged-out user hitting `/api/files/<id>` gets
+   401; a non-participant gets 404 (RLS).
+
+**What it proves:** files flow through the single gate, are stored under opaque
+keys, are never public, and are reachable only via short-lived signed URLs gated
+by the same RLS as their order.
