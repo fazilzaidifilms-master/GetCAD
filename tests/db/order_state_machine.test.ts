@@ -59,6 +59,13 @@ beforeAll(async () => {
        ($3,'SALES','ACTIVE'), ($4,'OPS','ACTIVE'), ($5,'DESIGNER','ACTIVE')`,
     [client, otherClient, sales, ops, designer],
   );
+  // The designer must pass the onboarding gate (0009) to be assignable: give
+  // them a profile with an accepted agreement.
+  await db.query(
+    `INSERT INTO designer_profiles (id, user_id, legal_name, email, agreement_accepted_at, agreement_version)
+     VALUES ($1, $2, 'Dana', 'dana@studio.example', now(), 'UNWIRED_V0')`,
+    [generateId(), designer],
+  );
 });
 
 afterAll(async () => {

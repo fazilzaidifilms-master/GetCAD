@@ -17,6 +17,7 @@ leaves no reviewable, replayable history.
   - `0006_audit_log.sql` — append-only, hash-chained `audit.audit_log` + helpers (`audit.log_event()`, `audit.verify_chain()`).
   - `0007_onboarding.sql` — `public.ensure_self()`: audited, idempotent self-signup (creates the caller's `users` row + a `USER_CREATED` audit entry).
   - `0008_order_state_machine.sql` — `order_transitions` (legal-move graph as data), `public.create_order()`, and `public.transition_order()` (role-gated, audited status changes).
+  - `0009_designer_onboarding_gate.sql` — gated designer onboarding: `apply_as_designer()`, `accept_designer_agreement()` (audited), `app.designer_is_assignable()`; `transition_order`'s ASSIGNED step enforces the gate.
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -40,6 +41,21 @@ It is enforced end-to-end:
   appends `ORDER_CREATED`. Atomic with the status change.
 
 The transition matrix is a **first cut** (data-driven, easy to revise).
+
+## Onboarding
+
+- **Client** — light: `public.ensure_self()` creates a `CLIENT/ACTIVE` row on
+  first login, audited (`USER_CREATED`).
+- **Designer** — gated: `public.apply_as_designer()` sets role DESIGNER /
+  status PENDING and creates the identity profile (audited `DESIGNER_APPLIED`).
+  The designer is **not assignable** until `public.accept_designer_agreement()`
+  records acceptance and flips them to ACTIVE (audited
+  `DESIGNER_AGREEMENT_ACCEPTED`). `transition_order`'s ASSIGNED step calls
+  `app.designer_is_assignable()` to enforce this.
+
+> The agreement **document** is not wired yet — only a version string
+> (`UNWIRED_V0`) + acceptance timestamp are stored. The gate structure and audit
+> trail exist now; the lawyer-drafted content/signature slot in later.
 
 ## Audit log (append-only, hash-chained)
 

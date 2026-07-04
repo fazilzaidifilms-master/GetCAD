@@ -281,3 +281,36 @@ and non-participants are all rejected; the audit chain stays valid.
 > Flagged: the transition matrix (who may do what, when) is a first cut in
 > `order_transitions`, easy to review/revise. Real pricing/escrow (money fields
 > at QUOTED) and the order UI are later slices.
+
+---
+
+# Designer onboarding gate (Slice 9)
+
+## N — A designer cannot be assigned until they accept the agreement
+
+Automated (deterministic, pure DB): `tests/db/designer_gate.test.ts`.
+
+Client onboarding stays light (Test L). The designer path is gated:
+
+```sql
+-- as the applicant (request.jwt.claims -> their sub):
+select public.apply_as_designer('dp1','Dana','dana@studio.example');  -- DESIGNER / PENDING (audited DESIGNER_APPLIED)
+
+-- as ops, try to assign this designer to a PAYMENT_HELD order:
+select public.transition_order('ord1','ASSIGNED','{"designer_id":"<designer>"}');
+-- ERROR: designer is not assignable: must be an ACTIVE designer who has accepted the agreement
+
+-- as the designer, accept:
+select public.accept_designer_agreement('UNWIRED_V0');  -- ACTIVE (audited DESIGNER_AGREEMENT_ACCEPTED)
+
+-- as ops, assign again:
+select public.transition_order('ord1','ASSIGNED','{"designer_id":"<designer>"}');  -- -> ASSIGNED
+```
+
+**Proves:** an unaccepted designer is blocked from assignment; accepting is
+audited and flips them to assignable; a non-designer cannot accept; the chain
+stays valid.
+
+> Flagged: applying as a designer changes the user's role (audited). The
+> agreement document is a placeholder (version string only) — the gate is
+> modelled now, the legal content wires in later.
