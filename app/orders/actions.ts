@@ -85,3 +85,16 @@ export async function releaseEscrowAction(formData: FormData): Promise<void> {
 export async function refundEscrowAction(formData: FormData): Promise<void> {
   await escrowRpc("refund_escrow", formData.get("order_id")?.toString() ?? "");
 }
+
+// Post a message to an order's double-blind thread. The DB derives the party
+// label and checks the caller is the client / assigned designer.
+export async function postMessageAction(formData: FormData): Promise<void> {
+  const orderId = formData.get("order_id")?.toString() ?? "";
+  const body = formData.get("body")?.toString() ?? "";
+  if (body.trim().length === 0) throw new Error("message is empty");
+
+  const supabase = await createUserSupabaseClient();
+  const { error } = await supabase.rpc("post_message", { p_order_id: orderId, p_body: body });
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+}
