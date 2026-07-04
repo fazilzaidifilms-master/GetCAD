@@ -545,3 +545,20 @@ sessions: one signed in as the client, one as the assigned designer.
 **What it proves:** the two blinded parties can converse end-to-end through the
 UI, each seeing the other purely as "Client"/"Designer", with every message
 recorded in the append-only, audited thread (Test W covers the invariants).
+
+## Y — Structured dispute resolution (Slice 16a, deterministic)
+
+> `tests/db/disputes.test.ts`. A first-class dispute: raised with a reason,
+> resolved as REWORK or REFUND. These transitions leave the generic
+> transition_order (reason/outcome always captured).
+
+**What it proves:**
+1. The order's client raises a dispute WITH a reason → order `DISPUTED`, an OPEN
+   dispute row recorded. A non-client can't; an empty reason is rejected; a
+   second dispute can't be raised while one is open.
+2. `transition_order` refuses to reach `DISPUTED` (use `raise_dispute`) and
+   refuses to move a `DISPUTED` order (use `resolve_dispute`).
+3. OPS resolves `REWORK` → order back to `IN_PROGRESS`, dispute `RESOLVED`.
+4. FINANCE resolves `REFUND` → escrow refunded (reuses `refund_escrow`, held → 0),
+   order `REFUNDED`, dispute `RESOLVED`. Wrong roles are blocked.
+5. Both events are audited (`DISPUTE_RAISED`/`DISPUTE_RESOLVED`); chain valid.
