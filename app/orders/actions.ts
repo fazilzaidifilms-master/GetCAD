@@ -36,3 +36,52 @@ export async function transitionAction(formData: FormData): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/orders");
 }
+
+// --- Money layer (escrow). Each just calls the DB function AS THE USER; the DB
+// enforces role, state, and money conservation. ---
+
+function intField(formData: FormData, name: string): number {
+  const raw = formData.get(name)?.toString().trim() ?? "";
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0) throw new Error(`${name} must be a non-negative whole number`);
+  return n;
+}
+
+// SALES sets the quote. The UI collects total + designer + qc; platform is the
+// remainder, so the split always sums to the total (the DB re-checks).
+export async function quoteAction(formData: FormData): Promise<void> {
+  const orderId = formData.get("order_id")?.toString() ?? "";
+  const total = intField(formData, "price_total");
+  const designer = intField(formData, "designer_payout");
+  const qc = intField(formData, "qc_payout");
+  const platform = total - designer - qc;
+  if (platform < 0) throw new Error("designer + qc payouts exceed the total");
+
+  const supabase = await createUserSupabaseClient();
+  const { error } = await supabase.rpc("quote_order", {
+    p_order_id: orderId,
+    p_price_total: total,
+    p_designer_payout: designer,
+    p_qc_payout: qc,
+    p_platform_commission: platform,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+}
+
+async function escrowRpc(fn: "hold_escrow" | "release_escrow" | "refund_escrow", orderId: string) {
+  const supabase = await createUserSupabaseClient();
+  const { error } = await supabase.rpc(fn, { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+}
+
+export async function holdEscrowAction(formData: FormData): Promise<void> {
+  await escrowRpc("hold_escrow", formData.get("order_id")?.toString() ?? "");
+}
+export async function releaseEscrowAction(formData: FormData): Promise<void> {
+  await escrowRpc("release_escrow", formData.get("order_id")?.toString() ?? "");
+}
+export async function refundEscrowAction(formData: FormData): Promise<void> {
+  await escrowRpc("refund_escrow", formData.get("order_id")?.toString() ?? "");
+}

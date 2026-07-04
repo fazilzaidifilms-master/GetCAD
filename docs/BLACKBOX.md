@@ -486,3 +486,25 @@ assignable — with every step audited and gated by the DB.
    held = 0; release is then impossible (mutually exclusive).
 5. Every movement is audited (`ORDER_QUOTED`/`ESCROW_HELD`/`ESCROW_RELEASED`/
    `ESCROW_REFUNDED`); the ledger is append-only; the audit chain stays valid.
+
+## V — Money UI: quote → fund → release/refund (Slice 14b, manual)
+
+> Auth-dependent UI, so a manual browser test. The enforcement it drives (roles,
+> states, money conservation) is proven deterministically in Test U.
+
+**Setup:** apply the escrow SQL live (`0012` migration + `0009` policy). Sign in
+with users of the relevant roles (SALES, the order's CLIENT, FINANCE).
+
+**Steps** (on `/orders`, per order):
+1. **Quote (SALES, SUBMITTED)** — enter Total / Designer / QC (minor units;
+   platform = remainder) and submit → order moves to `QUOTED`, money shown.
+2. **Fund (client, QUOTED)** — click "Fund escrow — pay $X" → `PAYMENT_HELD`,
+   "Held in escrow" appears; the money-state generic buttons are gone (the guard).
+3. **Release (FINANCE, CLOSED)** — after the order reaches CLOSED, click "Release
+   payout" → `PAYOUT_RELEASED`, held returns to 0.
+4. **Refund (FINANCE, PAYMENT_HELD/DISPUTED)** — click "Refund client" →
+   `REFUNDED`, held returns to 0.
+
+**What it proves:** the whole money loop is reachable from the UI, each control
+gated to the right role + state, and every movement recorded in the append-only
+ledger + audit log (Test U covers the invariants).
