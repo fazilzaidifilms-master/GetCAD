@@ -98,3 +98,31 @@ export async function postMessageAction(formData: FormData): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/orders");
 }
+
+// --- Disputes. The DB enforces role/state and records the reason/outcome. ---
+
+export async function raiseDisputeAction(formData: FormData): Promise<void> {
+  const orderId = formData.get("order_id")?.toString() ?? "";
+  const reason = formData.get("reason")?.toString() ?? "";
+  if (reason.trim().length === 0) throw new Error("a dispute reason is required");
+
+  const supabase = await createUserSupabaseClient();
+  const { error } = await supabase.rpc("raise_dispute", { p_order_id: orderId, p_reason: reason });
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+}
+
+export async function resolveDisputeAction(formData: FormData): Promise<void> {
+  const orderId = formData.get("order_id")?.toString() ?? "";
+  const resolution = formData.get("resolution")?.toString() ?? "";
+  const notes = formData.get("notes")?.toString() || null;
+
+  const supabase = await createUserSupabaseClient();
+  const { error } = await supabase.rpc("resolve_dispute", {
+    p_order_id: orderId,
+    p_resolution: resolution,
+    p_notes: notes,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+}

@@ -562,3 +562,25 @@ recorded in the append-only, audited thread (Test W covers the invariants).
 4. FINANCE resolves `REFUND` → escrow refunded (reuses `refund_escrow`, held → 0),
    order `REFUNDED`, dispute `RESOLVED`. Wrong roles are blocked.
 5. Both events are audited (`DISPUTE_RAISED`/`DISPUTE_RESOLVED`); chain valid.
+
+## Z — Dispute UI (Slice 16b, manual)
+
+> Auth-dependent UI, so a manual browser test. The enforcement (roles, states,
+> escrow refund) is proven deterministically in Test Y.
+
+**Setup:** apply the disputes SQL live (`0014` migration + `0011` policy). Have an
+order at `IN_PROGRESS` (funded + assigned). Sign in as the client, and separately
+as OPS and FINANCE.
+
+**Steps** (on `/orders`, the order's **Dispute** section):
+1. As the **client**, type a reason → "Raise a dispute" → order shows `DISPUTED`
+   with a "⚠️ Dispute open" banner showing the reason. The generic `DISPUTED`
+   button no longer appears.
+2. As **OPS**, the banner shows "Resolve: send back for rework" → click → order
+   returns to `IN_PROGRESS`, dispute closes.
+3. (Other order) As **FINANCE**, "Resolve: refund the client" → order `REFUNDED`,
+   escrow shows the refund (Money section), dispute closes.
+
+**What it proves:** the dispute loop is reachable from the UI, each control gated
+to the right role + state, with the reason + outcome recorded and audited (Test Y
+covers the invariants).
