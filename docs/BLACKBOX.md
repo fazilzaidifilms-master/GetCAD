@@ -597,3 +597,19 @@ covers the invariants).
 2. Notification text is identity-free (no names/emails).
 3. A user reads ONLY their own notifications (RLS); `mark_notifications_read()`
    clears the caller's unread and no one else's; the audit chain stays valid.
+
+## AB — Notifications panel (Slice 17b, manual)
+
+> Auth-dependent UI, so a manual browser test. The generation + RLS is proven in
+> Test AA.
+
+**Setup:** apply the notifications SQL live (`0015` migration + `0012` policy).
+
+**Steps** (on `/dashboard`):
+1. Trigger events on an order (get a quote, receive a message, get assigned). The
+   **Notifications** panel shows identity-free summaries with an unread count.
+2. Click **Mark all read** → the badge clears and the items dim.
+3. Sign in as the counterparty → they see *their* notifications, never yours.
+
+**What it proves:** each party sees only their own identity-free notifications,
+surfaced from the events they care about, with a working read state.
