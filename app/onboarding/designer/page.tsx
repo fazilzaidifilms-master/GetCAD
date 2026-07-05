@@ -105,7 +105,21 @@ export default async function DesignerOnboardingPage() {
   }
 
   const isActiveDesigner = me?.role === "DESIGNER" && me?.status === "ACTIVE";
-  const currentStep = !hasProfile ? 0 : signedCurrent && isActiveDesigner ? 2 : 1;
+
+  // Exhaustive: every combination of (hasProfile, doc, signedCurrent,
+  // isActiveDesigner) maps to exactly one stage, so exactly one section below
+  // always renders — never a blank page.
+  const stage = !hasProfile
+    ? "apply"
+    : !doc
+      ? "no-doc"
+      : !signedCurrent
+        ? "sign"
+        : isActiveDesigner
+          ? "active"
+          : "mismatch";
+
+  const currentStep = stage === "apply" ? 0 : stage === "active" ? 2 : 1;
 
   return (
     <main className="container max-w-2xl py-8">
@@ -118,8 +132,7 @@ export default async function DesignerOnboardingPage() {
 
       <Stepper steps={STEPS} current={currentStep} className="mt-5" />
 
-      {/* State C: signed the current version — fully onboarded. */}
-      {hasProfile && signedCurrent && isActiveDesigner && (
+      {stage === "active" && (
         <section className="mt-6 rounded-lg border border-border bg-card p-5">
           <div className="flex items-center gap-2">
             <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
@@ -138,8 +151,7 @@ export default async function DesignerOnboardingPage() {
         </section>
       )}
 
-      {/* State B: applicant who has not signed the CURRENT version (new or re-gated). */}
-      {hasProfile && doc && !signedCurrent && (
+      {stage === "sign" && doc && (
         <section className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
           <div>
             <p className="text-sm font-medium">{doc.title}</p>
@@ -164,15 +176,29 @@ export default async function DesignerOnboardingPage() {
         </section>
       )}
 
-      {/* State B fallback: applicant but no document is published. */}
-      {hasProfile && !doc && (
+      {stage === "no-doc" && (
         <section className="mt-6 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           No designer agreement is published yet — please check back shortly.
         </section>
       )}
 
-      {/* State A: not yet an applicant — show the apply form. */}
-      {!hasProfile && (
+      {/* Signed the current version, but the account's role/status isn't
+          currently DESIGNER/ACTIVE (e.g. changed after signing). Surfaced
+          explicitly instead of silently showing nothing. */}
+      {stage === "mismatch" && (
+        <section className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-700 dark:text-amber-400">
+          <p className="font-medium">Signed, but not currently active as a designer</p>
+          <p className="mt-1 text-amber-700/90 dark:text-amber-400/90">
+            You&apos;ve signed the current agreement, but your account&apos;s role is{" "}
+            <span className="font-mono">{me?.role ?? "unknown"}</span> and status is{" "}
+            <span className="font-mono">{me?.status ?? "unknown"}</span> — designers must be{" "}
+            <span className="font-mono">DESIGNER / ACTIVE</span> to be assignable. If this looks
+            wrong, contact support.
+          </p>
+        </section>
+      )}
+
+      {stage === "apply" && (
         <section className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
           <p className="text-sm text-muted-foreground">
             Apply to join as a designer. After applying you&apos;ll review and sign the designer
