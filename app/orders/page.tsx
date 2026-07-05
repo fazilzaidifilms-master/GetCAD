@@ -14,14 +14,22 @@ import {
   releaseEscrowAction,
   refundEscrowAction,
   postMessageAction,
+  raiseDisputeAction,
+  resolveDisputeAction,
 } from "./actions";
 import { uploadFileAction } from "./fileActions";
 
 export const dynamic = "force-dynamic";
 
-// Money-bearing statuses are driven by the escrow functions, not the generic
-// transition buttons — transition_order refuses them.
-const MONEY_TARGETS = new Set(["QUOTED", "PAYMENT_HELD", "PAYOUT_RELEASED", "REFUNDED"]);
+// Money-bearing + dispute statuses are driven by dedicated functions, not the
+// generic transition buttons — transition_order refuses them.
+const HIDDEN_TARGETS = new Set([
+  "QUOTED",
+  "PAYMENT_HELD",
+  "PAYOUT_RELEASED",
+  "REFUNDED",
+  "DISPUTED",
+]);
 
 interface OrderRow {
   id: string;
@@ -59,6 +67,15 @@ interface MessageRow {
   created_at: string;
 }
 
+interface DisputeRow {
+  id: string;
+  order_id: string;
+  reason: string;
+  status: "OPEN" | "RESOLVED";
+  resolution: "REWORK" | "REFUND" | null;
+  resolution_notes: string | null;
+}
+
 function formatMoney(minor: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(minor / 100);
@@ -74,7 +91,7 @@ export default async function OrdersPage() {
   const supabase = await createUserSupabaseClient();
   await supabase.rpc("ensure_self"); // ensure the caller has a users row
 
-  const [meRes, ordersRes, transitionsRes, versionsRes, ledgerRes, messagesRes] =
+  const [meRes, ordersRes, transitionsRes, versionsRes, ledgerRes, messagesRes, disputesRes] =
     await Promise.all([
     supabase.from("users").select("role").maybeSingle(),
     supabase
@@ -93,6 +110,10 @@ export default async function OrdersPage() {
       .from("messages")
       .select("id, order_id, sender_id, sender_party, body, created_at")
       .order("created_at", { ascending: true }),
+    supabase
+      .from("disputes")
+      .select("id, order_id, reason, status, resolution, resolution_notes")
+      .order("created_at", { ascending: false }),
   ]);
 
   const role: string = meRes.data?.role ?? "CLIENT";
@@ -101,6 +122,7 @@ export default async function OrdersPage() {
   const versions = (versionsRes.data ?? []) as VersionRow[];
   const ledger = (ledgerRes.data ?? []) as LedgerRow[];
   const messages = (messagesRes.data ?? []) as MessageRow[];
+  const disputes = (disputesRes.data ?? []) as DisputeRow[];
 
   const heldFor = (orderId: string): number =>
     ledger
@@ -135,11 +157,14 @@ export default async function OrdersPage() {
             role,
             isOrderClient: o.client_id === userId,
             isOrderDesigner: o.designer_id === userId,
-          }).filter((to) => !MONEY_TARGETS.has(to));
+          }).filter((to) => !HIDDEN_TARGETS.has(to));
           const isParticipant = o.client_id === userId || o.designer_id === userId;
           const isOrderClient = o.client_id === userId;
           const orderVersions = versions.filter((v) => v.order_id === o.id);
           const orderMessages = messages.filter((m) => m.order_id === o.id);
+          const openDispute = disputes.find((d) => d.order_id === o.id && d.status === "OPEN");
+          const canRaiseDispute =
+            isOrderClient && (o.status === "IN_PROGRESS" || o.status === "CLIENT_PREVIEW");
           const held = heldFor(o.id);
           return (
             <li key={o.id} className="rounded-lg border p-4">
@@ -258,6 +283,59 @@ export default async function OrdersPage() {
                   </div>
                 );
               })()}
+
+              {(openDispute || canRaiseDispute) && (
+                <div className="mt-3 border-t pt-3">
+                  <p className="text-xs text-muted-foreground">Dispute</p>
+
+                  {openDispute ? (
+                    <div className="mt-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                      <p className="text-sm font-medium">⚠️ Dispute open</p>
+                      <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+                        {openDispute.reason}
+                      </p>
+                      {(role === "OPS" || role === "FINANCE") && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {role === "OPS" && (
+                            <form action={resolveDisputeAction}>
+                              <input type="hidden" name="order_id" value={o.id} />
+                              <input type="hidden" name="resolution" value="REWORK" />
+                              <Button type="submit" variant="outline" size="sm">
+                                Resolve: send back for rework
+                              </Button>
+                            </form>
+                          )}
+                          {role === "FINANCE" && (
+                            <form action={resolveDisputeAction}>
+                              <input type="hidden" name="order_id" value={o.id} />
+                              <input type="hidden" name="resolution" value="REFUND" />
+                              <Button type="submit" variant="outline" size="sm">
+                                Resolve: refund the client
+                              </Button>
+                            </form>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <form action={raiseDisputeAction} className="mt-1 space-y-2">
+                      <input type="hidden" name="order_id" value={o.id} />
+                      <textarea
+                        name="reason"
+                        required
+                        rows={2}
+                        maxLength={5000}
+                        placeholder="Describe the problem…"
+                        className="w-full rounded-md border px-3 py-2 text-sm"
+                        aria-label="Dispute reason"
+                      />
+                      <Button type="submit" variant="outline" size="sm">
+                        Raise a dispute
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )}
 
               {(orderVersions.length > 0 || isParticipant) && (
                 <div className="mt-3 border-t pt-3">

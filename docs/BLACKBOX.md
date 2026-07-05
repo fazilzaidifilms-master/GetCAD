@@ -545,3 +545,42 @@ sessions: one signed in as the client, one as the assigned designer.
 **What it proves:** the two blinded parties can converse end-to-end through the
 UI, each seeing the other purely as "Client"/"Designer", with every message
 recorded in the append-only, audited thread (Test W covers the invariants).
+
+## Y — Structured dispute resolution (Slice 16a, deterministic)
+
+> `tests/db/disputes.test.ts`. A first-class dispute: raised with a reason,
+> resolved as REWORK or REFUND. These transitions leave the generic
+> transition_order (reason/outcome always captured).
+
+**What it proves:**
+1. The order's client raises a dispute WITH a reason → order `DISPUTED`, an OPEN
+   dispute row recorded. A non-client can't; an empty reason is rejected; a
+   second dispute can't be raised while one is open.
+2. `transition_order` refuses to reach `DISPUTED` (use `raise_dispute`) and
+   refuses to move a `DISPUTED` order (use `resolve_dispute`).
+3. OPS resolves `REWORK` → order back to `IN_PROGRESS`, dispute `RESOLVED`.
+4. FINANCE resolves `REFUND` → escrow refunded (reuses `refund_escrow`, held → 0),
+   order `REFUNDED`, dispute `RESOLVED`. Wrong roles are blocked.
+5. Both events are audited (`DISPUTE_RAISED`/`DISPUTE_RESOLVED`); chain valid.
+
+## Z — Dispute UI (Slice 16b, manual)
+
+> Auth-dependent UI, so a manual browser test. The enforcement (roles, states,
+> escrow refund) is proven deterministically in Test Y.
+
+**Setup:** apply the disputes SQL live (`0014` migration + `0011` policy). Have an
+order at `IN_PROGRESS` (funded + assigned). Sign in as the client, and separately
+as OPS and FINANCE.
+
+**Steps** (on `/orders`, the order's **Dispute** section):
+1. As the **client**, type a reason → "Raise a dispute" → order shows `DISPUTED`
+   with a "⚠️ Dispute open" banner showing the reason. The generic `DISPUTED`
+   button no longer appears.
+2. As **OPS**, the banner shows "Resolve: send back for rework" → click → order
+   returns to `IN_PROGRESS`, dispute closes.
+3. (Other order) As **FINANCE**, "Resolve: refund the client" → order `REFUNDED`,
+   escrow shows the refund (Money section), dispute closes.
+
+**What it proves:** the dispute loop is reachable from the UI, each control gated
+to the right role + state, with the reason + outcome recorded and audited (Test Y
+covers the invariants).

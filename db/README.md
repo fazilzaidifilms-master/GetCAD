@@ -22,6 +22,7 @@ leaves no reviewable, replayable history.
   - `0011_legal_agreements.sql` — the real document behind the gate: `agreement_documents` (immutable, versioned, `content_sha256`-fingerprinted) + `agreement_acceptances` (immutable signatures); `app.current_agreement()`; `accept_designer_agreement()` now verifies the fingerprint and records a signature; the gate requires acceptance of the **current** version (new version ⇒ auto re-gate).
   - `0012_escrow.sql` — the money layer: append-only `escrow_ledger` (HOLD/RELEASE/REFUND) + `app.escrow_held()`; `quote_order()` (SALES, conserving split), `hold_escrow()` (client), `release_escrow()` / `refund_escrow()` (FINANCE). Money-bearing status changes live ONLY here; `transition_order` refuses `QUOTED`/`PAYMENT_HELD`/`PAYOUT_RELEASED`/`REFUNDED` so status and money can't diverge. **Money is conserved** (split sums to total; release legs sum to held; one HOLD per order).
   - `0013_messages.sql` — double-blind messaging: append-only `messages` (opaque `sender_id` + `sender_party` label, no identity columns) + `post_message()` (order's client/designer only; party derived, audited `MESSAGE_POSTED`).
+  - `0014_disputes.sql` — structured disputes: `disputes` (reason + resolution) + `raise_dispute()` (client, with reason) and `resolve_dispute()` (OPS `REWORK` → IN_PROGRESS, or FINANCE `REFUND` reusing `refund_escrow`). `transition_order` refuses reaching/leaving `DISPUTED` so a reason + outcome are always captured. Audited `DISPUTE_RAISED`/`DISPUTE_RESOLVED`.
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -33,6 +34,7 @@ leaves no reviewable, replayable history.
   - `0008_legal_agreements_rls.sql` — agreement documents readable by any authenticated user (you must read what you sign); signatures readable only by their signer; all writes go through `accept_designer_agreement()` (no direct-write policy).
   - `0009_escrow_rls.sql` — you can read an order's escrow ledger only if you can read the order (inherits order visibility); all writes go through the escrow functions (no direct-write policy).
   - `0010_messages_rls.sql` — you can read an order's messages only if you can read the order; never joins a profile, so it reveals nothing about the counterparty beyond their party label. Writes go through `post_message()` (no direct-write policy).
+  - `0011_disputes_rls.sql` — you can read an order's disputes only if you can read the order; writes go through `raise_dispute()`/`resolve_dispute()` (no direct-write policy).
 
 ## Order state machine
 
