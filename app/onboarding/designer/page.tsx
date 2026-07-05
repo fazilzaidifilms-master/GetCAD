@@ -3,12 +3,18 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Stepper } from "@/components/stepper";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 import { applyAsDesignerAction, signAgreementAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const STEPS = [{ label: "Apply" }, { label: "Sign agreement" }, { label: "Active" }];
 
 interface AgreementDoc {
   id: string;
@@ -36,7 +42,7 @@ function renderMarkdown(body: string): ReactNode {
   return lines.map((line, i) => {
     if (line.startsWith("# ")) {
       return (
-        <h2 key={i} className="mt-4 text-lg font-semibold">
+        <h2 key={i} className="mt-4 text-base font-semibold">
           {renderInline(line.slice(2))}
         </h2>
       );
@@ -99,28 +105,34 @@ export default async function DesignerOnboardingPage() {
   }
 
   const isActiveDesigner = me?.role === "DESIGNER" && me?.status === "ACTIVE";
+  const currentStep = !hasProfile ? 0 : signedCurrent && isActiveDesigner ? 2 : 1;
 
   return (
-    <main className="container max-w-2xl py-12">
+    <main className="container max-w-2xl py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Become a designer</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Become a designer</h1>
         <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
           Dashboard
         </Link>
       </div>
 
+      <Stepper steps={STEPS} current={currentStep} className="mt-5" />
+
       {/* State C: signed the current version — fully onboarded. */}
       {hasProfile && signedCurrent && isActiveDesigner && (
-        <section className="mt-6 rounded-lg border p-4">
-          <p className="text-sm">
-            ✅ You&apos;re onboarded. You have signed{" "}
-            <span className="font-medium">{doc?.title}</span> (
-            <span className="font-mono">{doc?.version}</span>) and are eligible to be assigned work.
+        <section className="mt-6 rounded-lg border border-border bg-card p-5">
+          <div className="flex items-center gap-2">
+            <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+              Active
+            </Badge>
+            <p className="text-sm font-medium">You&apos;re onboarded</p>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You have signed <span className="font-medium text-foreground">{doc?.title}</span> (
+            <span className="tabular font-mono">{doc?.version}</span>) and are eligible to be
+            assigned work.
           </p>
-          <Link
-            href="/orders"
-            className="mt-3 inline-block text-sm text-muted-foreground underline hover:text-foreground"
-          >
+          <Link href="/orders" className="mt-3 inline-block text-sm text-primary hover:underline">
             Go to orders →
           </Link>
         </section>
@@ -128,16 +140,20 @@ export default async function DesignerOnboardingPage() {
 
       {/* State B: applicant who has not signed the CURRENT version (new or re-gated). */}
       {hasProfile && doc && !signedCurrent && (
-        <section className="mt-6 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Read the agreement below and sign to become assignable. Your signature is recorded
-            against this exact version and its cryptographic fingerprint.
-          </p>
-          <article className="max-h-96 overflow-y-auto rounded-lg border p-4">
+        <section className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
+          <div>
+            <p className="text-sm font-medium">{doc.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Read the agreement below and sign to become assignable. Your signature is recorded
+              against this exact version and its cryptographic fingerprint — if the text changes,
+              you sign again.
+            </p>
+          </div>
+          <article className="max-h-96 overflow-y-auto rounded-md border border-border bg-subtle p-4">
             {renderMarkdown(doc.body)}
           </article>
-          <div className="flex items-center justify-between gap-4">
-            <p className="font-mono text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="tabular font-mono text-xs text-muted-foreground">
               {doc.version} · {doc.content_sha256.slice(0, 16)}…
             </p>
             <form action={signAgreementAction}>
@@ -150,53 +166,32 @@ export default async function DesignerOnboardingPage() {
 
       {/* State B fallback: applicant but no document is published. */}
       {hasProfile && !doc && (
-        <section className="mt-6 rounded-lg border p-4">
-          <p className="text-sm text-red-600">
-            No designer agreement is published yet — please check back shortly.
-          </p>
+        <section className="mt-6 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          No designer agreement is published yet — please check back shortly.
         </section>
       )}
 
       {/* State A: not yet an applicant — show the apply form. */}
       {!hasProfile && (
-        <section className="mt-6 space-y-4">
+        <section className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
           <p className="text-sm text-muted-foreground">
             Apply to join as a designer. After applying you&apos;ll review and sign the designer
             agreement; you can&apos;t be assigned work until you do.
           </p>
-          <form action={applyAsDesignerAction} className="space-y-3">
-            <div>
-              <label htmlFor="legal_name" className="text-sm">
-                Legal name
-              </label>
-              <input
-                id="legal_name"
-                name="legal_name"
-                required
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              />
+          <form action={applyAsDesignerAction} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="legal_name">Legal name</Label>
+              <Input id="legal_name" name="legal_name" required />
             </div>
-            <div>
-              <label htmlFor="email" className="text-sm">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" required />
             </div>
-            <div>
-              <label htmlFor="country" className="text-sm">
-                Country <span className="text-muted-foreground">(optional)</span>
-              </label>
-              <input
-                id="country"
-                name="country"
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="country">
+                Country <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Input id="country" name="country" />
             </div>
             <Button type="submit">Apply as a designer</Button>
           </form>

@@ -738,3 +738,26 @@ by role: QC · identity protected" — never a name.
   dedicated **"Independent QC review"** panel with clear buttons ("Pass — send
   to client preview" / "Request revision") and the same reviewer-by-role-only
   language shown to the client.
+
+## AL — Onboarding + legal signing reskin (Slice 24, manual)
+
+> Visual/UX review; no new backend logic (same apply_as_designer /
+> accept_designer_agreement calls).
+
+**What it delivers:**
+- New shared primitives — `components/ui/input.tsx`, `textarea.tsx`, `label.tsx`
+  — consolidating three previously-duplicated ad hoc input styles into one
+  consistent, focus-ringed component used across onboarding AND the orders
+  list/detail (money/dispute/message/upload forms).
+- `components/stepper.tsx` — a horizontal progress indicator (Apply → Sign
+  agreement → Active), giving the designer onboarding flow the explicit,
+  visible-state treatment the rest of the app follows.
+- `app/onboarding/designer/page.tsx`: reskinned against the design system —
+  card sections, `Badge` for the Active state, tabular/mono version + fingerprint
+  display, the "no document published" state now uses destructive tokens instead
+  of a hardcoded red, and the stepper always shows exactly where the applicant is
+  (Apply / Sign / Active).
+
+**Client onboarding** stays as-is: it's the audited, single-step `ensure_self()`
+already covered by the Slice 20 dashboard reskin — there is no separate wizard
+surface for it.

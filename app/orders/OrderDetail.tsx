@@ -1,6 +1,8 @@
 import { availableTransitions, type TimelineRawRow, type TransitionRow } from "@/core";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 
 import {
@@ -18,9 +20,6 @@ import { OrderTimeline } from "./OrderTimeline";
 import type { DisputeRow, MessageRow, OrderRow, VersionRow } from "./types";
 
 const HIDDEN_TARGETS = new Set(["QUOTED", "PAYMENT_HELD", "PAYOUT_RELEASED", "REFUNDED", "DISPUTED"]);
-
-const inputCls =
-  "rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 
 function Panel({
   title,
@@ -137,11 +136,11 @@ export function OrderDetail({
               <input type="hidden" name="order_id" value={o.id} />
               <input type="hidden" name="to_status" value={to} />
               {to === "ASSIGNED" && (
-                <input
+                <Input
                   name="designer_id"
                   placeholder="designer reference"
                   aria-label="Designer reference to assign"
-                  className={`${inputCls} w-40`}
+                  className="h-8 w-40"
                 />
               )}
               <Button type="submit" variant="outline" size="sm">
@@ -195,15 +194,15 @@ export function OrderDetail({
                 <input type="hidden" name="order_id" value={o.id} />
                 <label className="text-xs text-muted-foreground">
                   Total
-                  <input name="price_total" type="number" min="1" required className={`${inputCls} mt-0.5 block w-28`} />
+                  <Input name="price_total" type="number" min="1" required className="mt-0.5 w-28" />
                 </label>
                 <label className="text-xs text-muted-foreground">
                   Designer
-                  <input name="designer_payout" type="number" min="0" defaultValue="0" required className={`${inputCls} mt-0.5 block w-28`} />
+                  <Input name="designer_payout" type="number" min="0" defaultValue="0" required className="mt-0.5 w-28" />
                 </label>
                 <label className="text-xs text-muted-foreground">
                   QC
-                  <input name="qc_payout" type="number" min="0" defaultValue="0" required className={`${inputCls} mt-0.5 block w-24`} />
+                  <Input name="qc_payout" type="number" min="0" defaultValue="0" required className="mt-0.5 w-24" />
                 </label>
                 <Button type="submit" size="sm">
                   Set quote
@@ -270,14 +269,13 @@ export function OrderDetail({
           ) : (
             <form action={raiseDisputeAction} className="space-y-2">
               <input type="hidden" name="order_id" value={o.id} />
-              <textarea
+              <Textarea
                 name="reason"
                 required
                 rows={2}
                 maxLength={5000}
                 placeholder="Describe the problem with this order…"
                 aria-label="Dispute reason"
-                className={`${inputCls} w-full`}
               />
               <Button type="submit" variant="outline" size="sm">
                 Raise a dispute
@@ -350,14 +348,14 @@ export function OrderDetail({
           {isParticipant && (
             <form action={postMessageAction} className="mt-3 flex items-end gap-2">
               <input type="hidden" name="order_id" value={o.id} />
-              <textarea
+              <Textarea
                 name="body"
                 required
                 rows={2}
                 maxLength={5000}
                 placeholder="Write a message…"
                 aria-label="Message body"
-                className={`${inputCls} flex-1`}
+                className="flex-1"
               />
               <Button type="submit">Send</Button>
             </form>

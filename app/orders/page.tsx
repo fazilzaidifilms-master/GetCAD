@@ -6,6 +6,7 @@ import { type TransitionRow } from "@/core";
 import { StatusBadge } from "@/components/status-badge";
 import { TrustLine } from "@/components/trust-line";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/money";
 
@@ -14,9 +15,6 @@ import { OrderDetail } from "./OrderDetail";
 import type { DisputeRow, LedgerRow, MessageRow, OrderRow, VersionRow } from "./types";
 
 export const dynamic = "force-dynamic";
-
-const inputCls =
-  "rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 
 export default async function OrdersPage({
   searchParams,
@@ -132,11 +130,11 @@ export default async function OrdersPage({
       </div>
 
       <form action={createOrderAction} className="mt-4 flex gap-2">
-        <input
+        <Input
           name="product_type"
           defaultValue="CAD_MODEL"
           aria-label="Product type"
-          className={`${inputCls} flex-1`}
+          className="flex-1"
         />
         <Button type="submit">New order</Button>
       </form>
