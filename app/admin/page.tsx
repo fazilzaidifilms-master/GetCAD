@@ -130,7 +130,7 @@ export default async function AdminPage() {
                           </span>
                         ))}
                         <Link
-                          href="/orders"
+                          href={`/orders?focus=${o.id}`}
                           className="text-xs font-medium underline hover:text-foreground"
                         >
                           Act →
