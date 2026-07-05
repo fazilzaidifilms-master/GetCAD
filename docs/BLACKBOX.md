@@ -653,3 +653,18 @@ SQL — and orders carry no identity, so the console never exposes one.
 4. No `public` table has a direct write policy (writes are function-only).
 5. Double-blind holds: a client can't read the designer's identity row and vice
    versa; each can read only their own.
+
+## AF — Design system foundation (Slice 20, deterministic + manual)
+
+> `core/orders/status.test.ts` (deterministic) + manual visual review.
+
+**Automated:** `statusMeta` maps every order status to a label + functional tone
+(neutral/info/attention/success/danger) and humanises unknowns without throwing.
+
+**Manual (visual):** the app now renders in "The CAD Pillar" identity —
+near-monochrome with one functional accent, Inter type, mono for ids/amounts,
+consistent borders/radius, light + dark tokens. The shell (top bar + wordmark),
+landing, and dashboard are re-skinned with `StatusBadge`, `Badge`, `Skeleton`,
+and the persistent `TrustLine` ("Designer identity protected · All actions
+logged · Independent QC required"). Subsequent slices re-skin the remaining
+surfaces against these tokens.
