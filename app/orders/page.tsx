@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { type TransitionRow } from "@/core";
+import { ErrorPanel } from "@/components/error-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { TrustLine } from "@/components/trust-line";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,27 @@ export default async function OrdersPage({
         .order("created_at", { ascending: false }),
     ]);
 
+  const queryError =
+    meRes.error ??
+    ordersRes.error ??
+    transitionsRes.error ??
+    versionsRes.error ??
+    ledgerRes.error ??
+    messagesRes.error ??
+    disputesRes.error;
+  if (queryError) {
+    return (
+      <main className="container max-w-4xl py-8">
+        <h1 className="text-xl font-semibold tracking-tight">Orders</h1>
+        <ErrorPanel
+          title="Couldn't load your orders"
+          message={`${queryError.message} — reload the page to try again.`}
+          className="mt-4"
+        />
+      </main>
+    );
+  }
+
   const role: string = meRes.data?.role ?? "CLIENT";
   const allOrders = (ordersRes.data ?? []) as OrderRow[];
   const transitions = (transitionsRes.data ?? []) as TransitionRow[];
@@ -70,11 +92,11 @@ export default async function OrdersPage({
   // --- Detail view ---------------------------------------------------------
   if (focus) {
     const order = allOrders.find((o) => o.id === focus);
-    const timelineRows = order
-      ? ((
-          await supabase.rpc("order_timeline", { p_order_id: order.id })
-        ).data ?? [])
-      : [];
+    const timelineRes = order
+      ? await supabase.rpc("order_timeline", { p_order_id: order.id })
+      : { data: [], error: null };
+    const timelineRows = timelineRes.data ?? [];
+    const timelineError = timelineRes.error?.message ?? null;
     return (
       <main className="container max-w-3xl py-8">
         <Link
@@ -109,6 +131,7 @@ export default async function OrdersPage({
                 openDispute={disputes.find((d) => d.order_id === order.id && d.status === "OPEN")}
                 held={heldFor(order.id)}
                 timelineRows={timelineRows}
+                timelineError={timelineError}
               />
             </div>
 

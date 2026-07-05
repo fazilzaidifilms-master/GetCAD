@@ -51,6 +51,7 @@ export function OrderDetail({
   openDispute,
   held,
   timelineRows,
+  timelineError,
 }: {
   order: OrderRow;
   role: string;
@@ -61,6 +62,7 @@ export function OrderDetail({
   openDispute?: DisputeRow;
   held: number;
   timelineRows: TimelineRawRow[];
+  timelineError?: string | null;
 }) {
   const isOrderClient = o.client_id === userId;
   const isParticipant = isOrderClient || o.designer_id === userId;
@@ -84,12 +86,28 @@ export function OrderDetail({
     isOrderClient && (o.status === "IN_PROGRESS" || o.status === "CLIENT_PREVIEW");
   const showMoney = o.price_total > 0 || canQuote || canFund || canRelease || canRefund;
 
+  // The receipt for "what just happened": the timestamp of the most recent
+  // recorded event, read straight from the timeline — no separate confirmation
+  // mechanism needed, since every action already produces a timestamped entry.
+  const lastEvent = timelineRows[timelineRows.length - 1];
+  const lastUpdatedAt = lastEvent
+    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(
+        new Date(lastEvent.created_at),
+      )
+    : null;
+
   return (
     <div className="space-y-4">
       {/* Timeline — every state explicit, visible, timestamped. The flagship
           trust surface: the client always sees exactly where their order is. */}
       <Panel title="Timeline">
-        <OrderTimeline rows={timelineRows} currency={o.currency} />
+        {timelineError ? (
+          <p className="text-sm text-destructive">
+            Couldn&apos;t load history: {timelineError}
+          </p>
+        ) : (
+          <OrderTimeline rows={timelineRows} currency={o.currency} />
+        )}
       </Panel>
 
       {/* Independent QC decision — the visible quality gate for this order. */}
@@ -125,6 +143,12 @@ export function OrderDetail({
           </dd>
           <dt className="text-muted-foreground">Type</dt>
           <dd>{o.product_type}</dd>
+          {lastUpdatedAt && (
+            <>
+              <dt className="text-muted-foreground">Recorded</dt>
+              <dd className="tabular font-mono text-xs text-muted-foreground">{lastUpdatedAt}</dd>
+            </>
+          )}
         </dl>
 
         <div className="mt-4 flex flex-wrap items-end gap-2">
