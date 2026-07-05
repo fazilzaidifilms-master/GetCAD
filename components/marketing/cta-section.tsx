@@ -15,9 +15,14 @@ export function CtaSection() {
             Submit a requirement and let the platform handle designer assignment, review, and
             delivery.
           </p>
-          <Link href="/sign-up" className={buttonVariants({ className: "mt-5" })}>
-            Get started
-          </Link>
+          <div className="mt-5 flex items-center gap-4">
+            <Link href="/sign-up" className={buttonVariants({})}>
+              Get started
+            </Link>
+            <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground">
+              Prefer to talk first? Contact sales →
+            </Link>
+          </div>
         </div>
         <div className="bg-card p-8">
           <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">

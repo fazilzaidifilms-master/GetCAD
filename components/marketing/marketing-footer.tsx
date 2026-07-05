@@ -9,6 +9,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/how-it-works", label: "How It Works" },
       { href: "/quality-control", label: "Quality Control" },
       { href: "/security", label: "Security" },
+      { href: "/blog", label: "Blog" },
     ],
   },
   {
@@ -16,6 +17,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
     links: [
       { href: "/about", label: "About" },
       { href: "/for-designers", label: "For Designers" },
+      { href: "/contact", label: "Contact Sales" },
     ],
   },
   {

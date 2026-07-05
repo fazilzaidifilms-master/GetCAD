@@ -792,3 +792,55 @@ surface for it.
   right next to the status badge. Every action already produces a timestamped
   audit entry (Slice 22); this surfaces that as the receipt, with zero new
   mutation-side code.
+
+## AN — Marketing lead capture (Slice 26a, deterministic)
+
+**Black-box test:** a marketing site visitor (unauthenticated, `anon` role) can
+submit a Contact Sales lead and have it persist; nobody — not even `anon` or
+`authenticated` — can read or write `marketing_leads` directly.
+
+**Steps:** `tests/db/marketing_leads.test.ts`. As `anon`, call
+`submit_marketing_lead(p_name, p_email, p_message, p_company, p_role)` — a row
+persists with the given fields; `company` is optional (`NULL` if omitted);
+`role` defaults to `BUSINESS`. Invalid email, empty name/message, or an invalid
+role all raise and no row is written. A direct `SELECT` or `INSERT` against
+`marketing_leads` as `anon` — bypassing the function — raises `permission
+denied` (there is no grant at all, not even SELECT: stronger than an
+RLS-empty-result). An authenticated user (arbitrary Clerk `sub`) can also
+submit through the same function. Runs alongside `tests/db/hardening.test.ts`
+(Test AE) to confirm the new table doesn't violate the "no public table grants
+direct writes" invariant.
+
+## AO — Marketing site: blog, contact form, content depth (Slice 26b, manual)
+
+> Visual/UX + content review. `marketing_leads` persistence is proven in AN;
+> this covers the pages and copy built on top of it.
+
+**What it delivers:**
+- **Contact Sales** (`/contact`) — a real form (Name / Company optional /
+  Email / role select / Message) posting to a server action
+  (`submitLeadAction`) that calls `submit_marketing_lead()` via the existing
+  Supabase client (which already degrades to the `anon` role for signed-out
+  visitors — no new client needed). Submitting redirects to
+  `/contact?submitted=1`, which renders a "Message received" confirmation in
+  place of the form.
+- **Blog** (`/blog` index + `/blog/[slug]`) — three sample posts
+  (`components/marketing/blog-posts.ts`, explicitly marked as starter/sample
+  editorial content to be replaced with real posts) covering casting failure
+  modes, the case for structural (not policy-based) anonymity, and the cost of
+  skipping independent QC. Rendered via a small self-contained markdown
+  renderer (`simple-markdown.tsx`, headings/lists/bold only, no
+  `dangerouslySetInnerHTML`). Each post page is statically generated
+  (`generateStaticParams`) with its own SEO metadata and ends with the shared
+  `CtaSection`.
+- **Homepage depth** — added a "From the blog" teaser (3 post cards linking
+  into `/blog`) and an FAQ section (`FaqSection`, 6 questions grounded only in
+  already-built functionality: anonymity, disputes, escrow, the audit trail,
+  and assignment) before the closing CTA.
+- **Navigation completeness** — header/footer/CTA section updated so every
+  non-auth link resolves to a real page: "Contact sales" added to the header,
+  footer, and the CTA section's client-side column; "Blog" added to the header
+  nav and footer's Product column.
+- `app/sitemap.ts` extended with `/contact`, `/blog`, and one entry per blog
+  post slug.
+  mutation-side code.

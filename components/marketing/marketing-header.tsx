@@ -9,6 +9,7 @@ const NAV = [
   { href: "/security", label: "Security" },
   { href: "/for-designers", label: "For Designers" },
   { href: "/about", label: "About" },
+  { href: "/blog", label: "Blog" },
 ];
 
 export function MarketingHeader() {
@@ -30,6 +31,12 @@ export function MarketingHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <Link
+            href="/contact"
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "hidden sm:inline-flex" })}
+          >
+            Contact sales
+          </Link>
           <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
             Sign in
           </Link>

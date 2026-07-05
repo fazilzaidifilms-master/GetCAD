@@ -25,6 +25,7 @@ leaves no reviewable, replayable history.
   - `0014_disputes.sql` — structured disputes: `disputes` (reason + resolution) + `raise_dispute()` (client, with reason) and `resolve_dispute()` (OPS `REWORK` → IN_PROGRESS, or FINANCE `REFUND` reusing `refund_escrow`). `transition_order` refuses reaching/leaving `DISPUTED` so a reason + outcome are always captured. Audited `DISPUTE_RAISED`/`DISPUTE_RESOLVED`.
   - `0015_notifications.sql` — in-app `notifications` generated from the audit log by an AFTER INSERT trigger (`app.fanout_notifications`) — no existing function changes. Identity-free summaries to the order's parties (never the actor); best-effort (never breaks the business action). `mark_notifications_read()`.
   - `0016_order_timeline.sql` — `public.order_timeline(order_id)`: a client-safe, order-scoped window onto the audit log (whitelisted lifecycle actions only, every row stripped of `actor_id` — only `actor_role` travels). Re-derives the exact visibility of orders RLS (0003 client/designer/QC + 0006 staff-queue) since a SECURITY DEFINER function bypasses RLS. Powers the order timeline + the visible independent-QC milestone.
+  - `0017_marketing_leads.sql` — `marketing_leads` (public Contact Sales inbox), deliberately isolated from the order/user domain (no FKs, no audit-log entry — a form submitter is not a platform user). Sole write path is `public.submit_marketing_lead()` (SECURITY DEFINER); the table itself carries no direct grants, matching the same "no public table grants direct writes" convention as everywhere else.
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -39,6 +40,7 @@ leaves no reviewable, replayable history.
   - `0011_disputes_rls.sql` — you can read an order's disputes only if you can read the order; writes go through `raise_dispute()`/`resolve_dispute()` (no direct-write policy).
   - `0012_notifications_rls.sql` — you can read ONLY your own notifications; writes go through the fan-out trigger + `mark_notifications_read()` (no direct-write policy).
   - `0013_harden_base_grants.sql` — defense-in-depth: revokes `INSERT/UPDATE/DELETE` on the base tables (`users`, `orders`, `client_profiles`, `designer_profiles`) from `anon`/`authenticated`. All writes go through SECURITY DEFINER functions (which bypass grants+RLS), so direct writes are locked at the grant level — the ONLY write path is the audited functions. `SELECT` stays (RLS scopes it).
+  - `0014_marketing_leads_rls.sql` — RLS enabled + forced on `marketing_leads` with **zero** allow policies (not even SELECT) — direct access is denied to every role, anon included. The only way in is `submit_marketing_lead()`, which runs as the function owner and bypasses RLS entirely.
 
 ## Order state machine
 
