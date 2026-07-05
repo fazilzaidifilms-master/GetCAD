@@ -668,3 +668,17 @@ landing, and dashboard are re-skinned with `StatusBadge`, `Badge`, `Skeleton`,
 and the persistent `TrustLine` ("Designer identity protected · All actions
 logged · Independent QC required"). Subsequent slices re-skin the remaining
 surfaces against these tokens.
+
+## AG — Orders list + detail reskin (Slice 21, manual)
+
+> Visual/UX review against the design system. Behaviour unchanged (proven by the
+> DB tests); this restructures the orders surface.
+
+**What it delivers:**
+- **List** (`/orders`): a dense, status-led table — StatusBadge, product type, mono
+  reference, price/held; each row opens the detail. Clear empty state.
+- **Detail** (`/orders?focus=<id>`): the order as titled panels — Order (status +
+  generic actions), Payment (split + amount held + role-gated quote/fund/release/
+  refund), Dispute (persistent banner, never a toast), Files, Messages
+  (double-blind, "identities hidden — role only"). "Not available" state for a
+  reference the role can't see. TrustLine on every view.

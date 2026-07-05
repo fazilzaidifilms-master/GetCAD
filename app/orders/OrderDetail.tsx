@@ -1,0 +1,330 @@
+import { availableTransitions, type TransitionRow } from "@/core";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/money";
+
+import {
+  transitionAction,
+  quoteAction,
+  holdEscrowAction,
+  releaseEscrowAction,
+  refundEscrowAction,
+  postMessageAction,
+  raiseDisputeAction,
+  resolveDisputeAction,
+} from "./actions";
+import { uploadFileAction } from "./fileActions";
+import type { DisputeRow, MessageRow, OrderRow, VersionRow } from "./types";
+
+const HIDDEN_TARGETS = new Set(["QUOTED", "PAYMENT_HELD", "PAYOUT_RELEASED", "REFUNDED", "DISPUTED"]);
+
+const inputCls =
+  "rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
+
+function Panel({
+  title,
+  aside,
+  children,
+}: {
+  title: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border border-border bg-card">
+      <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
+        <h2 className="text-sm font-medium">{title}</h2>
+        {aside}
+      </header>
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
+export function OrderDetail({
+  order: o,
+  role,
+  userId,
+  transitions,
+  versions,
+  messages,
+  openDispute,
+  held,
+}: {
+  order: OrderRow;
+  role: string;
+  userId: string;
+  transitions: TransitionRow[];
+  versions: VersionRow[];
+  messages: MessageRow[];
+  openDispute?: DisputeRow;
+  held: number;
+}) {
+  const isOrderClient = o.client_id === userId;
+  const isParticipant = isOrderClient || o.designer_id === userId;
+  const actions = availableTransitions(o.status, transitions, {
+    role,
+    isOrderClient,
+    isOrderDesigner: o.designer_id === userId,
+  }).filter((to) => !HIDDEN_TARGETS.has(to));
+
+  const canQuote = role === "SALES" && o.status === "SUBMITTED";
+  const canFund = isOrderClient && o.status === "QUOTED";
+  const canRelease = role === "FINANCE" && o.status === "CLOSED";
+  const canRefund = role === "FINANCE" && (o.status === "PAYMENT_HELD" || o.status === "DISPUTED");
+  const canRaiseDispute =
+    isOrderClient && (o.status === "IN_PROGRESS" || o.status === "CLIENT_PREVIEW");
+  const showMoney = o.price_total > 0 || canQuote || canFund || canRelease || canRefund;
+
+  return (
+    <div className="space-y-4">
+      {/* Overview + generic actions */}
+      <Panel title="Order" aside={<StatusBadge status={o.status} />}>
+        <dl className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt className="text-muted-foreground">Reference</dt>
+          <dd className="tabular truncate font-mono text-xs" title={o.id}>
+            {o.id}
+          </dd>
+          <dt className="text-muted-foreground">Type</dt>
+          <dd>{o.product_type}</dd>
+        </dl>
+
+        <div className="mt-4 flex flex-wrap items-end gap-2">
+          {actions.length === 0 && (
+            <p className="text-xs text-muted-foreground">No actions available for your role now.</p>
+          )}
+          {actions.map((to) => (
+            <form key={to} action={transitionAction} className="flex items-end gap-1.5">
+              <input type="hidden" name="order_id" value={o.id} />
+              <input type="hidden" name="to_status" value={to} />
+              {to === "ASSIGNED" && (
+                <input
+                  name="designer_id"
+                  placeholder="designer reference"
+                  aria-label="Designer reference to assign"
+                  className={`${inputCls} w-40`}
+                />
+              )}
+              <Button type="submit" variant="outline" size="sm">
+                <StatusBadge status={to} className="border-0 bg-transparent px-0" />
+              </Button>
+            </form>
+          ))}
+        </div>
+      </Panel>
+
+      {/* Payment / escrow */}
+      {showMoney && (
+        <Panel title="Payment">
+          {o.price_total > 0 && (
+            <dl className="grid grid-cols-2 gap-y-1.5 text-sm sm:grid-cols-4">
+              {[
+                ["Total", o.price_total],
+                ["Designer", o.designer_payout],
+                ["QC", o.qc_payout],
+                ["Platform", o.platform_commission],
+              ].map(([label, amt]) => (
+                <div key={label as string}>
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
+                  <dd className="tabular font-mono">{formatMoney(amt as number, o.currency)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          {held > 0 && (
+            <div className="mt-3 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+              <span className="text-muted-foreground">Held in escrow</span>
+              <span className="tabular ml-auto font-mono font-medium">
+                {formatMoney(held, o.currency)}
+              </span>
+            </div>
+          )}
+          {o.status === "PAYOUT_RELEASED" && (
+            <p className="mt-3 text-sm text-emerald-700 dark:text-emerald-400">
+              Funds released to the payout legs.
+            </p>
+          )}
+          {o.status === "REFUNDED" && (
+            <p className="mt-3 text-sm text-muted-foreground">Funds refunded to the client.</p>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            {canQuote && (
+              <form action={quoteAction} className="flex flex-wrap items-end gap-2">
+                <input type="hidden" name="order_id" value={o.id} />
+                <label className="text-xs text-muted-foreground">
+                  Total
+                  <input name="price_total" type="number" min="1" required className={`${inputCls} mt-0.5 block w-28`} />
+                </label>
+                <label className="text-xs text-muted-foreground">
+                  Designer
+                  <input name="designer_payout" type="number" min="0" defaultValue="0" required className={`${inputCls} mt-0.5 block w-28`} />
+                </label>
+                <label className="text-xs text-muted-foreground">
+                  QC
+                  <input name="qc_payout" type="number" min="0" defaultValue="0" required className={`${inputCls} mt-0.5 block w-24`} />
+                </label>
+                <Button type="submit" size="sm">
+                  Set quote
+                </Button>
+                <span className="w-full text-xs text-muted-foreground">
+                  Amounts in cents (e.g. 10000 = $100.00). Platform = total − designer − QC.
+                </span>
+              </form>
+            )}
+            {canFund && (
+              <form action={holdEscrowAction}>
+                <input type="hidden" name="order_id" value={o.id} />
+                <Button type="submit">Fund escrow — pay {formatMoney(o.price_total, o.currency)}</Button>
+              </form>
+            )}
+            {canRelease && (
+              <form action={releaseEscrowAction}>
+                <input type="hidden" name="order_id" value={o.id} />
+                <Button type="submit">Release payout</Button>
+              </form>
+            )}
+            {canRefund && (
+              <form action={refundEscrowAction}>
+                <input type="hidden" name="order_id" value={o.id} />
+                <Button type="submit" variant="outline">
+                  Refund client
+                </Button>
+              </form>
+            )}
+          </div>
+        </Panel>
+      )}
+
+      {/* Dispute — critical state, shown as a persistent banner (never a toast) */}
+      {(openDispute || canRaiseDispute) && (
+        <Panel title="Dispute">
+          {openDispute ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+              <p className="text-sm font-medium text-destructive">Dispute open</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm">{openDispute.reason}</p>
+              {(role === "OPS" || role === "FINANCE") && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {role === "OPS" && (
+                    <form action={resolveDisputeAction}>
+                      <input type="hidden" name="order_id" value={o.id} />
+                      <input type="hidden" name="resolution" value="REWORK" />
+                      <Button type="submit" variant="outline" size="sm">
+                        Send back for rework
+                      </Button>
+                    </form>
+                  )}
+                  {role === "FINANCE" && (
+                    <form action={resolveDisputeAction}>
+                      <input type="hidden" name="order_id" value={o.id} />
+                      <input type="hidden" name="resolution" value="REFUND" />
+                      <Button type="submit" variant="destructive" size="sm">
+                        Refund the client
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <form action={raiseDisputeAction} className="space-y-2">
+              <input type="hidden" name="order_id" value={o.id} />
+              <textarea
+                name="reason"
+                required
+                rows={2}
+                maxLength={5000}
+                placeholder="Describe the problem with this order…"
+                aria-label="Dispute reason"
+                className={`${inputCls} w-full`}
+              />
+              <Button type="submit" variant="outline" size="sm">
+                Raise a dispute
+              </Button>
+            </form>
+          )}
+        </Panel>
+      )}
+
+      {/* Files */}
+      {(versions.length > 0 || isParticipant) && (
+        <Panel title="Files">
+          <ul className="divide-y divide-border">
+            {versions.length === 0 && (
+              <li className="py-2 text-sm text-muted-foreground">No files yet.</li>
+            )}
+            {versions.map((v) => (
+              <li key={v.id} className="flex items-center justify-between py-2 text-sm">
+                <span className="flex items-center gap-2">
+                  <span className="tabular font-mono text-xs text-muted-foreground">v{v.version_no}</span>
+                  <span className="text-muted-foreground">{v.content_type}</span>
+                </span>
+                <a href={`/api/files/${v.id}`} className="text-sm text-primary hover:underline">
+                  Download
+                </a>
+              </li>
+            ))}
+          </ul>
+          {isParticipant && (
+            <form action={uploadFileAction} className="mt-3 flex items-center gap-2">
+              <input type="hidden" name="order_id" value={o.id} />
+              <input type="file" name="file" required aria-label="Upload a file" className="text-sm" />
+              <Button type="submit" variant="outline" size="sm">
+                Upload
+              </Button>
+            </form>
+          )}
+        </Panel>
+      )}
+
+      {/* Messages — double-blind */}
+      {(messages.length > 0 || isParticipant) && (
+        <Panel
+          title="Messages"
+          aside={
+            <span className="text-xs text-muted-foreground">Identities hidden — role only</span>
+          }
+        >
+          <ul className="space-y-2">
+            {messages.length === 0 && (
+              <li className="text-sm text-muted-foreground">No messages yet.</li>
+            )}
+            {messages.map((m) => {
+              const mine = m.sender_id === userId;
+              const who = mine ? "You" : m.sender_party === "CLIENT" ? "Client" : "Designer";
+              return (
+                <li key={m.id} className={mine ? "text-right" : "text-left"}>
+                  <div
+                    className={`inline-block max-w-[85%] rounded-lg border px-3 py-2 text-left text-sm ${
+                      mine ? "border-primary/20 bg-primary/5" : "border-border bg-subtle"
+                    }`}
+                  >
+                    <p className="text-xs font-medium text-muted-foreground">{who}</p>
+                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          {isParticipant && (
+            <form action={postMessageAction} className="mt-3 flex items-end gap-2">
+              <input type="hidden" name="order_id" value={o.id} />
+              <textarea
+                name="body"
+                required
+                rows={2}
+                maxLength={5000}
+                placeholder="Write a message…"
+                aria-label="Message body"
+                className={`${inputCls} flex-1`}
+              />
+              <Button type="submit">Send</Button>
+            </form>
+          )}
+        </Panel>
+      )}
+    </div>
+  );
+}
