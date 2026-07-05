@@ -84,9 +84,15 @@ function formatMoney(minor: number, currency: string): string {
   }
 }
 
-export default async function OrdersPage() {
+export default async function OrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ focus?: string }>;
+}) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+
+  const focus = (await searchParams).focus;
 
   const supabase = await createUserSupabaseClient();
   await supabase.rpc("ensure_self"); // ensure the caller has a users row
@@ -117,7 +123,9 @@ export default async function OrdersPage() {
   ]);
 
   const role: string = meRes.data?.role ?? "CLIENT";
-  const orders = (ordersRes.data ?? []) as OrderRow[];
+  const allOrders = (ordersRes.data ?? []) as OrderRow[];
+  // When focused (e.g. arriving from the staff console), show just that order.
+  const orders = focus ? allOrders.filter((o) => o.id === focus) : allOrders;
   const transitions = (transitionsRes.data ?? []) as TransitionRow[];
   const versions = (versionsRes.data ?? []) as VersionRow[];
   const ledger = (ledgerRes.data ?? []) as LedgerRow[];
@@ -138,19 +146,32 @@ export default async function OrdersPage() {
         </Link>
       </div>
 
-      <form action={createOrderAction} className="mt-6 flex gap-2">
-        <input
-          name="product_type"
-          defaultValue="CAD_MODEL"
-          className="flex-1 rounded-md border px-3 py-2 text-sm"
-          aria-label="Product type"
-        />
-        <Button type="submit">New order</Button>
-      </form>
+      {focus ? (
+        <div className="mt-4 flex items-center justify-between rounded-md border bg-muted px-3 py-2 text-sm">
+          <span className="text-muted-foreground">
+            Showing 1 order · <span className="font-mono text-xs">{focus}</span>
+          </span>
+          <Link href="/orders" className="font-medium underline hover:text-foreground">
+            Show all orders
+          </Link>
+        </div>
+      ) : (
+        <form action={createOrderAction} className="mt-6 flex gap-2">
+          <input
+            name="product_type"
+            defaultValue="CAD_MODEL"
+            className="flex-1 rounded-md border px-3 py-2 text-sm"
+            aria-label="Product type"
+          />
+          <Button type="submit">New order</Button>
+        </form>
+      )}
 
       <ul className="mt-6 space-y-3">
         {orders.length === 0 && (
-          <li className="text-sm text-muted-foreground">No orders yet — create one above.</li>
+          <li className="text-sm text-muted-foreground">
+            {focus ? "That order isn't in your queue." : "No orders yet — create one above."}
+          </li>
         )}
         {orders.map((o) => {
           const actions = availableTransitions(o.status, transitions, {
