@@ -721,3 +721,20 @@ unrecognised status is humanised, never thrown; row order and no-identity
 independent QC review renders as an elevated, tone-coloured milestone box
 ("Independent QC review — Passed" / "Revision requested"), captioned "Reviewed
 by role: QC · identity protected" — never a name.
+
+## AK — Staff console + QC decision reskin (Slice 23, manual)
+
+> Visual/UX review; no new backend logic (same transition_order calls).
+
+**What it delivers:**
+- `/admin` reskinned against the design system: `StatusBadge`/`Badge`, denser
+  grouped-by-status sections, mono order references, role badge in the header,
+  a specific error state (message + reload) and an actionable empty state
+  ("Queue clear — nothing needs a <ROLE> action right now").
+- A persistent callout for QC when their queue has orders `IN QC_REVIEW`,
+  naming the responsibility explicitly.
+- Order detail: when the caller is QC and the order is `QC_REVIEW`, the
+  pass/revision transitions are pulled out of the generic action chips into a
+  dedicated **"Independent QC review"** panel with clear buttons ("Pass — send
+  to client preview" / "Request revision") and the same reviewer-by-role-only
+  language shown to the client.

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { availableTransitions, isStaffRole, type TransitionRow } from "@/core";
+import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -41,11 +43,11 @@ export default async function AdminPage() {
   if (!isStaffRole(role)) {
     return (
       <main className="container max-w-2xl py-12">
-        <h1 className="text-2xl font-semibold tracking-tight">Staff console</h1>
-        <p className="mt-4 text-sm text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight">Staff console</h1>
+        <div className="mt-4 rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
           This area is for staff roles (SALES, OPS, QC, FINANCE). Your role is{" "}
-          <span className="font-mono">{role}</span>.
-        </p>
+          <Badge variant="muted">{role}</Badge>.
+        </div>
       </main>
     );
   }
@@ -59,10 +61,23 @@ export default async function AdminPage() {
     supabase.from("order_transitions").select("from_status, to_status, actor_role, actor_scope"),
   ]);
 
+  if (ordersRes.error || transitionsRes.error) {
+    return (
+      <main className="container max-w-2xl py-12">
+        <h1 className="text-xl font-semibold tracking-tight">Staff console</h1>
+        <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <p className="font-medium">Couldn&apos;t load your queue</p>
+          <p className="mt-1 text-destructive/90">
+            {(ordersRes.error ?? transitionsRes.error)?.message} — reload the page to try again.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   const orders = (ordersRes.data ?? []) as OrderRow[];
   const transitions = (transitionsRes.data ?? []) as TransitionRow[];
 
-  // Group by status.
   const byStatus = new Map<string, OrderRow[]>();
   for (const o of orders) {
     const list = byStatus.get(o.status) ?? [];
@@ -70,80 +85,94 @@ export default async function AdminPage() {
     byStatus.set(o.status, list);
   }
   const statuses = [...byStatus.keys()].sort();
+  const inQcReview = role === "QC" && (byStatus.get("QC_REVIEW")?.length ?? 0) > 0;
 
   return (
-    <main className="container max-w-2xl py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Staff console</h1>
+    <main className="container max-w-5xl py-8">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Staff console</h1>
+          <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="muted">{role}</Badge>
+            <span className="tabular">
+              {orders.length} order{orders.length === 1 ? "" : "s"} awaiting your action
+            </span>
+          </p>
+        </div>
         <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">
-          Orders →
+          All orders →
         </Link>
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Role <span className="font-mono">{role}</span> · {orders.length} order
-        {orders.length === 1 ? "" : "s"} awaiting your action
-      </p>
 
-      {orders.length === 0 && (
-        <p className="mt-6 text-sm text-muted-foreground">
-          Your queue is clear — nothing needs your action right now.
-        </p>
+      {inQcReview && (
+        <div className="mt-4 rounded-md border border-border bg-subtle px-4 py-3 text-sm">
+          <p className="font-medium">Independent QC review</p>
+          <p className="mt-0.5 text-muted-foreground">
+            Your decision here is the client&apos;s visible quality gate — recorded as
+            &quot;Independent QC review: passed&quot; or &quot;revision requested&quot; on their timeline, by
+            role only.
+          </p>
+        </div>
       )}
 
-      <div className="mt-6 space-y-5">
-        {statuses.map((status) => {
-          const group = byStatus.get(status) ?? [];
-          return (
-            <section key={status}>
-              <div className="flex items-baseline justify-between">
-                <h2 className="text-sm font-semibold">
-                  {STATUS_LABEL[status] ?? status}{" "}
-                  <span className="font-mono text-xs font-normal text-muted-foreground">
-                    {status}
-                  </span>
-                </h2>
-                <span className="text-xs text-muted-foreground">{group.length}</span>
-              </div>
-              <ul className="mt-2 space-y-2">
-                {group.map((o) => {
-                  const actions = availableTransitions(o.status, transitions, {
-                    role,
-                    isOrderClient: false,
-                    isOrderDesigner: false,
-                  });
-                  return (
-                    <li
-                      key={o.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border p-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-mono text-xs text-muted-foreground">{o.id}</p>
-                        <p className="text-sm">{o.product_type}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {actions.map((to) => (
-                          <span
-                            key={to}
-                            className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
-                          >
-                            {to}
-                          </span>
-                        ))}
+      {orders.length === 0 ? (
+        <div className="mt-6 rounded-lg border border-border bg-card p-10 text-center">
+          <p className="text-sm font-medium">Queue clear</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Nothing needs a {role} action right now. New orders will appear here the moment they
+            reach a state your role can act on.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6 space-y-6">
+          {statuses.map((status) => {
+            const group = byStatus.get(status) ?? [];
+            return (
+              <section key={status} className="overflow-hidden rounded-lg border border-border bg-card">
+                <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={status} />
+                    <span className="text-sm text-muted-foreground">
+                      {STATUS_LABEL[status] ?? "Awaiting action"}
+                    </span>
+                  </div>
+                  <span className="tabular text-xs text-muted-foreground">{group.length}</span>
+                </header>
+                <ul className="divide-y divide-border">
+                  {group.map((o) => {
+                    const actions = availableTransitions(o.status, transitions, {
+                      role,
+                      isOrderClient: false,
+                      isOrderDesigner: false,
+                    });
+                    return (
+                      <li key={o.id} className="flex items-center gap-4 px-4 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{o.product_type}</p>
+                          <p className="tabular truncate font-mono text-xs text-muted-foreground">
+                            {o.id}
+                          </p>
+                        </div>
+                        <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+                          {actions.map((to) => (
+                            <StatusBadge key={to} status={to} className="opacity-70" />
+                          ))}
+                        </div>
                         <Link
                           href={`/orders?focus=${o.id}`}
-                          className="text-xs font-medium underline hover:text-foreground"
+                          className="shrink-0 text-sm font-medium text-primary hover:underline"
                         >
                           Act →
                         </Link>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          );
-        })}
-      </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }
