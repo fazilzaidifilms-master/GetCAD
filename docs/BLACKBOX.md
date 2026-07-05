@@ -613,3 +613,28 @@ covers the invariants).
 
 **What it proves:** each party sees only their own identity-free notifications,
 surfaced from the events they care about, with a working read state.
+
+## AC — Staff-role helper (Slice 18, deterministic)
+
+> `core/auth/roles.test.ts`. `isStaffRole` gates the staff console UI.
+> Authorization itself stays in the DB (RLS + definer functions); this only
+> decides what to show.
+
+**What it proves:** every staff role (SALES/OPS/QC/FINANCE) is recognised;
+CLIENT/DESIGNER/unknown/null are rejected.
+
+## AD — Staff console (Slice 18, manual)
+
+> Auth-dependent UI, no new SQL. Uses the existing staff order RLS (0006).
+
+**Steps** (on `/admin`, the new "Staff" nav link):
+1. As a **client/designer**, `/admin` shows a "staff only" message.
+2. Set your role to a staff role (e.g. OPS) and reload → the console lists the
+   orders your role can act on, **grouped by status** with a plain-language label
+   ("Ready to assign", "Ready for payout", "Dispute — needs resolution"), the
+   available next-status chips, and an "Act →" link to `/orders`.
+3. Different staff roles see different queues (SALES: awaiting quote; FINANCE:
+   payout/refund; QC: review), driven by the same graph as staff visibility.
+
+**What it proves:** staff get a focused, role-aware work queue without flipping
+SQL — and orders carry no identity, so the console never exposes one.
