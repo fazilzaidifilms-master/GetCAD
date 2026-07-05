@@ -11,6 +11,8 @@ export type {
   VerifyClerkTokenOptions,
 } from "./auth/verifyClerkToken";
 export { isProtectedPath, PROTECTED_PREFIXES } from "./auth/session";
+export { isStaffRole, STAFF_ROLES } from "./auth/roles";
+export type { StaffRole } from "./auth/roles";
 export { availableTransitions } from "./orders/availableTransitions";
 export type { TransitionRow, ActorContext } from "./orders/availableTransitions";
 export { sanitizeUpload, MAX_UPLOAD_BYTES, DEFAULT_ALLOWLIST } from "./files/sanitizationGate";

@@ -47,6 +47,9 @@ export default function RootLayout({
                 >
                   Become a designer
                 </Link>
+                <Link href="/admin" className="text-muted-foreground hover:text-foreground">
+                  Staff
+                </Link>
                 <UserButton />
               </SignedIn>
             </nav>
