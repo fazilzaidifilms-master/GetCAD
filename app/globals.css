@@ -2,21 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * The CAD Pillar — design tokens.
+ * Infrastructure software: near-monochrome (black / white / greys) + ONE
+ * restrained functional accent (interactive / primary action / focus). Colour
+ * carries information (order status), never mood. Neutral greys are hue-less.
+ */
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --primary: 222 47% 11%;
-    --primary-foreground: 210 40% 98%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 222 47% 11%;
+    --foreground: 0 0% 9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.5%;
+    --muted-foreground: 0 0% 42%;
+    --subtle: 0 0% 98%; /* faint panel fill */
+
+    --secondary: 0 0% 96.5%;
+    --secondary-foreground: 0 0% 12%;
+    --accent: 0 0% 94.5%; /* hover surface (shadcn convention) */
+    --accent-foreground: 0 0% 9%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 87%;
+
+    /* The single functional accent. */
+    --primary: 222 78% 48%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 222 78% 48%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
     --radius: 0.5rem;
+
+    --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas,
+      "Liberation Mono", monospace;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
+
+    --card: 0 0% 9.5%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 9.5%;
+    --popover-foreground: 0 0% 96%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 62%;
+    --subtle: 0 0% 11%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 96%;
+    --accent: 0 0% 17%;
+    --accent-foreground: 0 0% 96%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 22%;
+
+    --primary: 217 90% 62%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 217 90% 62%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
   }
 
   * {
     border-color: hsl(var(--border));
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Tabular figures for IDs, amounts, timestamps. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
