@@ -17,6 +17,8 @@ export { availableTransitions } from "./orders/availableTransitions";
 export type { TransitionRow, ActorContext } from "./orders/availableTransitions";
 export { ORDER_STATUS_META, statusMeta } from "./orders/status";
 export type { StatusTone, StatusMeta } from "./orders/status";
+export { buildTimeline } from "./orders/timeline";
+export type { TimelineRawRow, TimelineStep, QcOutcome } from "./orders/timeline";
 export { sanitizeUpload, MAX_UPLOAD_BYTES, DEFAULT_ALLOWLIST } from "./files/sanitizationGate";
 export type {
   IncomingFile,

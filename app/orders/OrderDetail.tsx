@@ -1,4 +1,4 @@
-import { availableTransitions, type TransitionRow } from "@/core";
+import { availableTransitions, type TimelineRawRow, type TransitionRow } from "@/core";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/money";
@@ -14,6 +14,7 @@ import {
   resolveDisputeAction,
 } from "./actions";
 import { uploadFileAction } from "./fileActions";
+import { OrderTimeline } from "./OrderTimeline";
 import type { DisputeRow, MessageRow, OrderRow, VersionRow } from "./types";
 
 const HIDDEN_TARGETS = new Set(["QUOTED", "PAYMENT_HELD", "PAYOUT_RELEASED", "REFUNDED", "DISPUTED"]);
@@ -50,6 +51,7 @@ export function OrderDetail({
   messages,
   openDispute,
   held,
+  timelineRows,
 }: {
   order: OrderRow;
   role: string;
@@ -59,6 +61,7 @@ export function OrderDetail({
   messages: MessageRow[];
   openDispute?: DisputeRow;
   held: number;
+  timelineRows: TimelineRawRow[];
 }) {
   const isOrderClient = o.client_id === userId;
   const isParticipant = isOrderClient || o.designer_id === userId;
@@ -78,6 +81,12 @@ export function OrderDetail({
 
   return (
     <div className="space-y-4">
+      {/* Timeline — every state explicit, visible, timestamped. The flagship
+          trust surface: the client always sees exactly where their order is. */}
+      <Panel title="Timeline">
+        <OrderTimeline rows={timelineRows} currency={o.currency} />
+      </Panel>
+
       {/* Overview + generic actions */}
       <Panel title="Order" aside={<StatusBadge status={o.status} />}>
         <dl className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-1.5 text-sm">

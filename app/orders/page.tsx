@@ -72,6 +72,11 @@ export default async function OrdersPage({
   // --- Detail view ---------------------------------------------------------
   if (focus) {
     const order = allOrders.find((o) => o.id === focus);
+    const timelineRows = order
+      ? ((
+          await supabase.rpc("order_timeline", { p_order_id: order.id })
+        ).data ?? [])
+      : [];
     return (
       <main className="container max-w-3xl py-8">
         <Link
@@ -105,6 +110,7 @@ export default async function OrdersPage({
                 messages={messages.filter((m) => m.order_id === order.id)}
                 openDispute={disputes.find((d) => d.order_id === order.id && d.status === "OPEN")}
                 held={heldFor(order.id)}
+                timelineRows={timelineRows}
               />
             </div>
 
