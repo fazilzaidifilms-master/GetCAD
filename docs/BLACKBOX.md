@@ -682,3 +682,42 @@ surfaces against these tokens.
   refund), Dispute (persistent banner, never a toast), Files, Messages
   (double-blind, "identities hidden — role only"). "Not available" state for a
   reference the role can't see. TrustLine on every view.
+
+## AH — Order timeline (client-safe audit window) (Slice 22, deterministic)
+
+> `tests/db/order_timeline.test.ts`. The flagship trust surface: a narrow,
+> read-only window onto the audit log, scoped exactly like order visibility, with
+> every row stripped of actor identity — only `actor_role` travels.
+
+**What it proves:**
+1. The client sees the full lifecycle in chronological order, including the
+   `QC_REVIEW → CLIENT_PREVIEW` entry — the independent QC milestone — with
+   `actor_role = 'QC'` (reviewer shown by role only, never identity).
+2. The assigned designer sees the same timeline.
+3. Visibility is exactly as narrow as order visibility — not broader: a staff
+   role whose queue slot has passed (e.g. QC once the order leaves QC_REVIEW) is
+   rejected, same as a non-participant.
+4. No row carries an `actor_id` — identity cannot leak through this surface.
+5. Money-bearing entries (quote/hold) carry their amount, matching the ledger.
+
+## AI — Timeline labeling + QC milestone (Slice 22, deterministic)
+
+> `core/orders/timeline.test.ts`. Pure mapping from raw rows to display steps —
+> framework-free, so the QC-milestone detection is unit-tested independent of UI.
+
+**What it proves:** every whitelisted action gets a human label; the
+`QC_REVIEW → CLIENT_PREVIEW` / `→ REVISION_REQUESTED` transitions are flagged as
+a **distinct milestone** (`isQcMilestone` + `qcOutcome`) rather than a generic
+status change; money amounts and dispute outcomes are carried through; an
+unrecognised status is humanised, never thrown; row order and no-identity
+(no `actorId` field) are preserved.
+
+## AJ — Timeline UI (Slice 22, manual)
+
+> Visual/UX review. The data + labeling are proven in AH/AI.
+
+**Steps:** open any order detail (`/orders?focus=<id>`) — the **Timeline** panel
+(now first) shows every state change, timestamped, in a vertical list. The
+independent QC review renders as an elevated, tone-coloured milestone box
+("Independent QC review — Passed" / "Revision requested"), captioned "Reviewed
+by role: QC · identity protected" — never a name.
