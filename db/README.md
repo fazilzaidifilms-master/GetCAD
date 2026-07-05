@@ -23,6 +23,7 @@ leaves no reviewable, replayable history.
   - `0012_escrow.sql` — the money layer: append-only `escrow_ledger` (HOLD/RELEASE/REFUND) + `app.escrow_held()`; `quote_order()` (SALES, conserving split), `hold_escrow()` (client), `release_escrow()` / `refund_escrow()` (FINANCE). Money-bearing status changes live ONLY here; `transition_order` refuses `QUOTED`/`PAYMENT_HELD`/`PAYOUT_RELEASED`/`REFUNDED` so status and money can't diverge. **Money is conserved** (split sums to total; release legs sum to held; one HOLD per order).
   - `0013_messages.sql` — double-blind messaging: append-only `messages` (opaque `sender_id` + `sender_party` label, no identity columns) + `post_message()` (order's client/designer only; party derived, audited `MESSAGE_POSTED`).
   - `0014_disputes.sql` — structured disputes: `disputes` (reason + resolution) + `raise_dispute()` (client, with reason) and `resolve_dispute()` (OPS `REWORK` → IN_PROGRESS, or FINANCE `REFUND` reusing `refund_escrow`). `transition_order` refuses reaching/leaving `DISPUTED` so a reason + outcome are always captured. Audited `DISPUTE_RAISED`/`DISPUTE_RESOLVED`.
+  - `0015_notifications.sql` — in-app `notifications` generated from the audit log by an AFTER INSERT trigger (`app.fanout_notifications`) — no existing function changes. Identity-free summaries to the order's parties (never the actor); best-effort (never breaks the business action). `mark_notifications_read()`.
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -35,6 +36,7 @@ leaves no reviewable, replayable history.
   - `0009_escrow_rls.sql` — you can read an order's escrow ledger only if you can read the order (inherits order visibility); all writes go through the escrow functions (no direct-write policy).
   - `0010_messages_rls.sql` — you can read an order's messages only if you can read the order; never joins a profile, so it reveals nothing about the counterparty beyond their party label. Writes go through `post_message()` (no direct-write policy).
   - `0011_disputes_rls.sql` — you can read an order's disputes only if you can read the order; writes go through `raise_dispute()`/`resolve_dispute()` (no direct-write policy).
+  - `0012_notifications_rls.sql` — you can read ONLY your own notifications; writes go through the fan-out trigger + `mark_notifications_read()` (no direct-write policy).
 
 ## Order state machine
 
