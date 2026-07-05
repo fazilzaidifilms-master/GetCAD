@@ -2,87 +2,21 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { availableTransitions, type TransitionRow } from "@/core";
+import { type TransitionRow } from "@/core";
+import { StatusBadge } from "@/components/status-badge";
+import { TrustLine } from "@/components/trust-line";
 import { Button } from "@/components/ui/button";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
+import { formatMoney } from "@/lib/money";
 
-import {
-  createOrderAction,
-  transitionAction,
-  quoteAction,
-  holdEscrowAction,
-  releaseEscrowAction,
-  refundEscrowAction,
-  postMessageAction,
-  raiseDisputeAction,
-  resolveDisputeAction,
-} from "./actions";
-import { uploadFileAction } from "./fileActions";
+import { createOrderAction } from "./actions";
+import { OrderDetail } from "./OrderDetail";
+import type { DisputeRow, LedgerRow, MessageRow, OrderRow, VersionRow } from "./types";
 
 export const dynamic = "force-dynamic";
 
-// Money-bearing + dispute statuses are driven by dedicated functions, not the
-// generic transition buttons — transition_order refuses them.
-const HIDDEN_TARGETS = new Set([
-  "QUOTED",
-  "PAYMENT_HELD",
-  "PAYOUT_RELEASED",
-  "REFUNDED",
-  "DISPUTED",
-]);
-
-interface OrderRow {
-  id: string;
-  product_type: string;
-  status: string;
-  client_id: string;
-  designer_id: string | null;
-  currency: string;
-  price_total: number;
-  designer_payout: number;
-  qc_payout: number;
-  platform_commission: number;
-}
-
-interface VersionRow {
-  id: string;
-  order_id: string;
-  version_no: number;
-  content_type: string;
-  size_bytes: number;
-}
-
-interface LedgerRow {
-  order_id: string;
-  kind: "HOLD" | "RELEASE" | "REFUND";
-  amount: number;
-}
-
-interface MessageRow {
-  id: string;
-  order_id: string;
-  sender_id: string; // opaque; only used to detect "You" — never displayed
-  sender_party: "CLIENT" | "DESIGNER";
-  body: string;
-  created_at: string;
-}
-
-interface DisputeRow {
-  id: string;
-  order_id: string;
-  reason: string;
-  status: "OPEN" | "RESOLVED";
-  resolution: "REWORK" | "REFUND" | null;
-  resolution_notes: string | null;
-}
-
-function formatMoney(minor: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(minor / 100);
-  } catch {
-    return `${(minor / 100).toFixed(2)} ${currency}`;
-  }
-}
+const inputCls =
+  "rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 
 export default async function OrdersPage({
   searchParams,
@@ -95,37 +29,35 @@ export default async function OrdersPage({
   const focus = (await searchParams).focus;
 
   const supabase = await createUserSupabaseClient();
-  await supabase.rpc("ensure_self"); // ensure the caller has a users row
+  await supabase.rpc("ensure_self");
 
   const [meRes, ordersRes, transitionsRes, versionsRes, ledgerRes, messagesRes, disputesRes] =
     await Promise.all([
-    supabase.from("users").select("role").maybeSingle(),
-    supabase
-      .from("orders")
-      .select(
-        "id, product_type, status, client_id, designer_id, currency, price_total, designer_payout, qc_payout, platform_commission",
-      )
-      .order("created_at", { ascending: false }),
-    supabase.from("order_transitions").select("from_status, to_status, actor_role, actor_scope"),
-    supabase
-      .from("file_versions")
-      .select("id, order_id, version_no, content_type, size_bytes")
-      .order("version_no", { ascending: false }),
-    supabase.from("escrow_ledger").select("order_id, kind, amount"),
-    supabase
-      .from("messages")
-      .select("id, order_id, sender_id, sender_party, body, created_at")
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("disputes")
-      .select("id, order_id, reason, status, resolution, resolution_notes")
-      .order("created_at", { ascending: false }),
-  ]);
+      supabase.from("users").select("role").maybeSingle(),
+      supabase
+        .from("orders")
+        .select(
+          "id, product_type, status, client_id, designer_id, currency, price_total, designer_payout, qc_payout, platform_commission",
+        )
+        .order("created_at", { ascending: false }),
+      supabase.from("order_transitions").select("from_status, to_status, actor_role, actor_scope"),
+      supabase
+        .from("file_versions")
+        .select("id, order_id, version_no, content_type, size_bytes")
+        .order("version_no", { ascending: false }),
+      supabase.from("escrow_ledger").select("order_id, kind, amount"),
+      supabase
+        .from("messages")
+        .select("id, order_id, sender_id, sender_party, body, created_at")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("disputes")
+        .select("id, order_id, reason, status, resolution, resolution_notes")
+        .order("created_at", { ascending: false }),
+    ]);
 
   const role: string = meRes.data?.role ?? "CLIENT";
   const allOrders = (ordersRes.data ?? []) as OrderRow[];
-  // When focused (e.g. arriving from the staff console), show just that order.
-  const orders = focus ? allOrders.filter((o) => o.id === focus) : allOrders;
   const transitions = (transitionsRes.data ?? []) as TransitionRow[];
   const versions = (versionsRes.data ?? []) as VersionRow[];
   const ledger = (ledgerRes.data ?? []) as LedgerRow[];
@@ -137,318 +69,121 @@ export default async function OrdersPage({
       .filter((l) => l.order_id === orderId)
       .reduce((net, l) => net + (l.kind === "HOLD" ? l.amount : -l.amount), 0);
 
-  return (
-    <main className="container max-w-2xl py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Your orders</h1>
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-          Dashboard
+  // --- Detail view ---------------------------------------------------------
+  if (focus) {
+    const order = allOrders.find((o) => o.id === focus);
+    return (
+      <main className="container max-w-3xl py-8">
+        <Link
+          href="/orders"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← All orders
         </Link>
+        {!order ? (
+          <div className="mt-6 rounded-lg border border-border bg-card p-8 text-center">
+            <p className="text-sm font-medium">Order not available</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This order isn&apos;t visible to your role, or the reference is wrong.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <h1 className="text-lg font-semibold tracking-tight">{order.product_type}</h1>
+              <StatusBadge status={order.status} />
+            </div>
+            <p className="tabular mt-0.5 font-mono text-xs text-muted-foreground">{order.id}</p>
+
+            <div className="mt-6">
+              <OrderDetail
+                order={order}
+                role={role}
+                userId={userId}
+                transitions={transitions}
+                versions={versions.filter((v) => v.order_id === order.id)}
+                messages={messages.filter((m) => m.order_id === order.id)}
+                openDispute={disputes.find((d) => d.order_id === order.id && d.status === "OPEN")}
+                held={heldFor(order.id)}
+              />
+            </div>
+
+            <TrustLine className="mt-6" />
+          </>
+        )}
+      </main>
+    );
+  }
+
+  // --- List view -----------------------------------------------------------
+  return (
+    <main className="container max-w-4xl py-8">
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-xl font-semibold tracking-tight">Orders</h1>
+        <span className="tabular text-sm text-muted-foreground">
+          {allOrders.length} order{allOrders.length === 1 ? "" : "s"}
+        </span>
       </div>
 
-      {focus ? (
-        <div className="mt-4 flex items-center justify-between rounded-md border bg-muted px-3 py-2 text-sm">
-          <span className="text-muted-foreground">
-            Showing 1 order · <span className="font-mono text-xs">{focus}</span>
-          </span>
-          <Link href="/orders" className="font-medium underline hover:text-foreground">
-            Show all orders
-          </Link>
-        </div>
-      ) : (
-        <form action={createOrderAction} className="mt-6 flex gap-2">
-          <input
-            name="product_type"
-            defaultValue="CAD_MODEL"
-            className="flex-1 rounded-md border px-3 py-2 text-sm"
-            aria-label="Product type"
-          />
-          <Button type="submit">New order</Button>
-        </form>
-      )}
+      <form action={createOrderAction} className="mt-4 flex gap-2">
+        <input
+          name="product_type"
+          defaultValue="CAD_MODEL"
+          aria-label="Product type"
+          className={`${inputCls} flex-1`}
+        />
+        <Button type="submit">New order</Button>
+      </form>
 
-      <ul className="mt-6 space-y-3">
-        {orders.length === 0 && (
-          <li className="text-sm text-muted-foreground">
-            {focus ? "That order isn't in your queue." : "No orders yet — create one above."}
-          </li>
-        )}
-        {orders.map((o) => {
-          const actions = availableTransitions(o.status, transitions, {
-            role,
-            isOrderClient: o.client_id === userId,
-            isOrderDesigner: o.designer_id === userId,
-          }).filter((to) => !HIDDEN_TARGETS.has(to));
-          const isParticipant = o.client_id === userId || o.designer_id === userId;
-          const isOrderClient = o.client_id === userId;
-          const orderVersions = versions.filter((v) => v.order_id === o.id);
-          const orderMessages = messages.filter((m) => m.order_id === o.id);
-          const openDispute = disputes.find((d) => d.order_id === o.id && d.status === "OPEN");
-          const canRaiseDispute =
-            isOrderClient && (o.status === "IN_PROGRESS" || o.status === "CLIENT_PREVIEW");
-          const held = heldFor(o.id);
-          return (
-            <li key={o.id} className="rounded-lg border p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-xs text-muted-foreground">{o.id}</p>
-                  <p className="text-sm">
-                    {o.product_type} · <span className="font-medium">{o.status}</span>
-                  </p>
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  {actions.length === 0 && (
-                    <span className="text-xs text-muted-foreground">no actions</span>
-                  )}
-                  {actions.map((to) => (
-                    <form key={to} action={transitionAction} className="flex items-center gap-1">
-                      <input type="hidden" name="order_id" value={o.id} />
-                      <input type="hidden" name="to_status" value={to} />
-                      {to === "ASSIGNED" && (
-                        <input
-                          name="designer_id"
-                          placeholder="designer id"
-                          className="w-28 rounded-md border px-2 py-1 text-xs"
-                          aria-label="Designer id to assign"
-                        />
-                      )}
-                      <Button type="submit" variant="outline" size="sm">
-                        {to}
-                      </Button>
-                    </form>
-                  ))}
-                </div>
-              </div>
-
-              {(() => {
-                const canQuote = role === "SALES" && o.status === "SUBMITTED";
-                const canFund = isOrderClient && o.status === "QUOTED";
-                const canRelease = role === "FINANCE" && o.status === "CLOSED";
-                const canRefund =
-                  role === "FINANCE" && (o.status === "PAYMENT_HELD" || o.status === "DISPUTED");
-                const show =
-                  o.price_total > 0 || canQuote || canFund || canRelease || canRefund;
-                if (!show) return null;
-                return (
-                  <div className="mt-3 border-t pt-3">
-                    <p className="text-xs text-muted-foreground">Money</p>
-
-                    {o.price_total > 0 && (
-                      <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                        <li>
-                          Price: <span className="font-medium text-foreground">{formatMoney(o.price_total, o.currency)}</span>{" "}
-                          (designer {formatMoney(o.designer_payout, o.currency)} · qc{" "}
-                          {formatMoney(o.qc_payout, o.currency)} · platform{" "}
-                          {formatMoney(o.platform_commission, o.currency)})
-                        </li>
-                        {held > 0 && (
-                          <li>
-                            Held in escrow:{" "}
-                            <span className="font-medium text-foreground">{formatMoney(held, o.currency)}</span>
-                          </li>
-                        )}
-                        {o.status === "PAYOUT_RELEASED" && <li>✅ Funds released to payout legs.</li>}
-                        {o.status === "REFUNDED" && <li>↩️ Funds refunded to the client.</li>}
-                      </ul>
-                    )}
-
-                    <div className="mt-2 flex flex-wrap items-end gap-2">
-                      {canQuote && (
-                        <form action={quoteAction} className="flex flex-wrap items-end gap-2">
-                          <input type="hidden" name="order_id" value={o.id} />
-                          <label className="text-xs">
-                            Total
-                            <input name="price_total" type="number" min="1" required
-                              className="mt-0.5 block w-24 rounded-md border px-2 py-1 text-xs" />
-                          </label>
-                          <label className="text-xs">
-                            Designer
-                            <input name="designer_payout" type="number" min="0" defaultValue="0" required
-                              className="mt-0.5 block w-24 rounded-md border px-2 py-1 text-xs" />
-                          </label>
-                          <label className="text-xs">
-                            QC
-                            <input name="qc_payout" type="number" min="0" defaultValue="0" required
-                              className="mt-0.5 block w-20 rounded-md border px-2 py-1 text-xs" />
-                          </label>
-                          <Button type="submit" variant="outline" size="sm">
-                            Quote (minor units)
-                          </Button>
-                        </form>
-                      )}
-                      {canFund && (
-                        <form action={holdEscrowAction}>
-                          <input type="hidden" name="order_id" value={o.id} />
-                          <Button type="submit" size="sm">
-                            Fund escrow — pay {formatMoney(o.price_total, o.currency)}
-                          </Button>
-                        </form>
-                      )}
-                      {canRelease && (
-                        <form action={releaseEscrowAction}>
-                          <input type="hidden" name="order_id" value={o.id} />
-                          <Button type="submit" size="sm">
-                            Release payout
-                          </Button>
-                        </form>
-                      )}
-                      {canRefund && (
-                        <form action={refundEscrowAction}>
-                          <input type="hidden" name="order_id" value={o.id} />
-                          <Button type="submit" variant="outline" size="sm">
-                            Refund client
-                          </Button>
-                        </form>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {(openDispute || canRaiseDispute) && (
-                <div className="mt-3 border-t pt-3">
-                  <p className="text-xs text-muted-foreground">Dispute</p>
-
-                  {openDispute ? (
-                    <div className="mt-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
-                      <p className="text-sm font-medium">⚠️ Dispute open</p>
-                      <p className="mt-1 whitespace-pre-wrap break-words text-sm">
-                        {openDispute.reason}
+      <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
+        {allOrders.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-sm font-medium">No orders yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">Create your first order above.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {allOrders.map((o) => {
+              const held = heldFor(o.id);
+              return (
+                <li key={o.id}>
+                  <Link
+                    href={`/orders?focus=${o.id}`}
+                    className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-accent"
+                  >
+                    <StatusBadge status={o.status} className="shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{o.product_type}</p>
+                      <p className="tabular truncate font-mono text-xs text-muted-foreground">
+                        {o.id}
                       </p>
-                      {(role === "OPS" || role === "FINANCE") && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {role === "OPS" && (
-                            <form action={resolveDisputeAction}>
-                              <input type="hidden" name="order_id" value={o.id} />
-                              <input type="hidden" name="resolution" value="REWORK" />
-                              <Button type="submit" variant="outline" size="sm">
-                                Resolve: send back for rework
-                              </Button>
-                            </form>
+                    </div>
+                    <div className="tabular shrink-0 text-right font-mono text-sm">
+                      {o.price_total > 0 ? (
+                        <>
+                          <p>{formatMoney(o.price_total, o.currency)}</p>
+                          {held > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {formatMoney(held, o.currency)} held
+                            </p>
                           )}
-                          {role === "FINANCE" && (
-                            <form action={resolveDisputeAction}>
-                              <input type="hidden" name="order_id" value={o.id} />
-                              <input type="hidden" name="resolution" value="REFUND" />
-                              <Button type="submit" variant="outline" size="sm">
-                                Resolve: refund the client
-                              </Button>
-                            </form>
-                          )}
-                        </div>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </div>
-                  ) : (
-                    <form action={raiseDisputeAction} className="mt-1 space-y-2">
-                      <input type="hidden" name="order_id" value={o.id} />
-                      <textarea
-                        name="reason"
-                        required
-                        rows={2}
-                        maxLength={5000}
-                        placeholder="Describe the problem…"
-                        className="w-full rounded-md border px-3 py-2 text-sm"
-                        aria-label="Dispute reason"
-                      />
-                      <Button type="submit" variant="outline" size="sm">
-                        Raise a dispute
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              )}
-
-              {(orderVersions.length > 0 || isParticipant) && (
-                <div className="mt-3 border-t pt-3">
-                  <p className="text-xs text-muted-foreground">Files</p>
-                  <ul className="mt-1 space-y-1">
-                    {orderVersions.map((v) => (
-                      <li key={v.id} className="flex items-center justify-between text-sm">
-                        <span>
-                          v{v.version_no} · <span className="text-muted-foreground">{v.content_type}</span>
-                        </span>
-                        <a
-                          href={`/api/files/${v.id}`}
-                          className="text-xs text-muted-foreground underline hover:text-foreground"
-                        >
-                          Download
-                        </a>
-                      </li>
-                    ))}
-                    {orderVersions.length === 0 && (
-                      <li className="text-xs text-muted-foreground">No files yet.</li>
-                    )}
-                  </ul>
-                  {isParticipant && (
-                    <form action={uploadFileAction} className="mt-2 flex items-center gap-2">
-                      <input type="hidden" name="order_id" value={o.id} />
-                      <input
-                        type="file"
-                        name="file"
-                        required
-                        className="text-xs"
-                        aria-label="Upload a file"
-                      />
-                      <Button type="submit" variant="outline" size="sm">
-                        Upload
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              )}
-
-              {(orderMessages.length > 0 || isParticipant) && (
-                <div className="mt-3 border-t pt-3">
-                  <p className="text-xs text-muted-foreground">
-                    Messages{" "}
-                    <span className="text-muted-foreground/70">
-                      (identities are never shown — only your counterparty&apos;s role)
+                    <span className="shrink-0 text-muted-foreground" aria-hidden>
+                      →
                     </span>
-                  </p>
-                  <ul className="mt-2 space-y-2">
-                    {orderMessages.length === 0 && (
-                      <li className="text-xs text-muted-foreground">No messages yet.</li>
-                    )}
-                    {orderMessages.map((m) => {
-                      const mine = m.sender_id === userId;
-                      const who = mine ? "You" : m.sender_party === "CLIENT" ? "Client" : "Designer";
-                      return (
-                        <li key={m.id} className={mine ? "text-right" : "text-left"}>
-                          <div
-                            className={`inline-block max-w-[85%] rounded-lg border px-3 py-2 text-left text-sm ${
-                              mine ? "bg-muted" : ""
-                            }`}
-                          >
-                            <p className="text-xs font-medium text-muted-foreground">{who}</p>
-                            <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {isParticipant && (
-                    <form action={postMessageAction} className="mt-2 flex items-end gap-2">
-                      <input type="hidden" name="order_id" value={o.id} />
-                      <textarea
-                        name="body"
-                        required
-                        rows={2}
-                        maxLength={5000}
-                        placeholder="Write a message…"
-                        className="flex-1 rounded-md border px-3 py-2 text-sm"
-                        aria-label="Message body"
-                      />
-                      <Button type="submit" size="sm">
-                        Send
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <TrustLine className="mt-6" />
     </main>
   );
 }
