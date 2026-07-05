@@ -65,11 +65,17 @@ export function OrderDetail({
 }) {
   const isOrderClient = o.client_id === userId;
   const isParticipant = isOrderClient || o.designer_id === userId;
-  const actions = availableTransitions(o.status, transitions, {
+  const allActions = availableTransitions(o.status, transitions, {
     role,
     isOrderClient,
     isOrderDesigner: o.designer_id === userId,
   }).filter((to) => !HIDDEN_TARGETS.has(to));
+
+  // The QC pass/revision decision is the independent quality gate — surfaced as
+  // its own clearly-labelled panel rather than a generic status chip.
+  const isQcDecision = role === "QC" && o.status === "QC_REVIEW";
+  const qcTargets = new Set(["CLIENT_PREVIEW", "REVISION_REQUESTED"]);
+  const actions = isQcDecision ? allActions.filter((to) => !qcTargets.has(to)) : allActions;
 
   const canQuote = role === "SALES" && o.status === "SUBMITTED";
   const canFund = isOrderClient && o.status === "QUOTED";
@@ -86,6 +92,30 @@ export function OrderDetail({
       <Panel title="Timeline">
         <OrderTimeline rows={timelineRows} currency={o.currency} />
       </Panel>
+
+      {/* Independent QC decision — the visible quality gate for this order. */}
+      {isQcDecision && (
+        <Panel title="Independent QC review">
+          <p className="text-sm text-muted-foreground">
+            Your decision is recorded on the client&apos;s timeline as &quot;Independent QC review:
+            passed&quot; or &quot;revision requested&quot;, by role only.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <form action={transitionAction}>
+              <input type="hidden" name="order_id" value={o.id} />
+              <input type="hidden" name="to_status" value="CLIENT_PREVIEW" />
+              <Button type="submit">Pass — send to client preview</Button>
+            </form>
+            <form action={transitionAction}>
+              <input type="hidden" name="order_id" value={o.id} />
+              <input type="hidden" name="to_status" value="REVISION_REQUESTED" />
+              <Button type="submit" variant="outline">
+                Request revision
+              </Button>
+            </form>
+          </div>
+        </Panel>
+      )}
 
       {/* Overview + generic actions */}
       <Panel title="Order" aside={<StatusBadge status={o.status} />}>
