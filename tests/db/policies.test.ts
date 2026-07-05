@@ -133,6 +133,10 @@ describe("Default-deny still holds for the unauthenticated and for writes", () =
     }
   });
 
+  // Direct writes to base tables are locked at the GRANT level (0013 revoked
+  // INSERT/UPDATE/DELETE from anon/authenticated), which is stronger than an RLS
+  // block — it is rejected before RLS even evaluates. All real writes go through
+  // the SECURITY DEFINER functions.
   it("writes remain locked: a client cannot INSERT an order", async () => {
     await expect(
       asUser(clientA, async () => {
@@ -144,13 +148,14 @@ describe("Default-deny still holds for the unauthenticated and for writes", () =
           [generateId(), clientA],
         );
       }),
-    ).rejects.toThrow(/row-level security/i);
+    ).rejects.toThrow(/permission denied|row-level security/i);
   });
 
-  it("writes remain locked: a client's UPDATE affects zero rows", async () => {
-    await asUser(clientA, async () => {
-      const res = await db.query("UPDATE orders SET product_type = 'HACKED' WHERE id = $1", [order1]);
-      expect(res.rowCount).toBe(0);
-    });
+  it("writes remain locked: a client cannot UPDATE an order directly", async () => {
+    await expect(
+      asUser(clientA, async () => {
+        await db.query("UPDATE orders SET product_type = 'HACKED' WHERE id = $1", [order1]);
+      }),
+    ).rejects.toThrow(/permission denied|row-level security/i);
   });
 });

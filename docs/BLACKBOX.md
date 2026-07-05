@@ -638,3 +638,18 @@ CLIENT/DESIGNER/unknown/null are rejected.
 
 **What it proves:** staff get a focused, role-aware work queue without flipping
 SQL — and orders carry no identity, so the console never exposes one.
+
+## AE — Security invariants (Slice 19 hardening, deterministic)
+
+> `tests/db/hardening.test.ts`. Locks the whole-system security posture in as
+> assertions so it can't regress.
+
+**What it proves:**
+1. Every `public` table has RLS **enabled and forced**.
+2. **No** `public` table grants `INSERT/UPDATE/DELETE` to `anon`/`authenticated`
+   (0013 revoked the base-table writes) — the only write path is the SECURITY
+   DEFINER functions, and writes still succeed through them.
+3. Every SECURITY DEFINER function sets `search_path = ''`.
+4. No `public` table has a direct write policy (writes are function-only).
+5. Double-blind holds: a client can't read the designer's identity row and vice
+   versa; each can read only their own.
