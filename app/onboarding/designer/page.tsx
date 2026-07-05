@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +89,20 @@ export default async function DesignerOnboardingPage() {
       .limit(1)
       .maybeSingle(),
   ]);
+
+  const queryError = meRes.error ?? profileRes.error ?? docRes.error;
+  if (queryError) {
+    return (
+      <main className="container max-w-2xl py-8">
+        <h1 className="text-xl font-semibold tracking-tight">Become a designer</h1>
+        <ErrorPanel
+          title="Couldn't load this page"
+          message={`${queryError.message} — reload the page to try again.`}
+          className="mt-4"
+        />
+      </main>
+    );
+  }
 
   const me = meRes.data as { role: string; status: string } | null;
   const hasProfile = !!profileRes.data;

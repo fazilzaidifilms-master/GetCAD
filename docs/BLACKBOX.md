@@ -761,3 +761,34 @@ by role: QC · identity protected" — never a name.
 **Client onboarding** stays as-is: it's the audited, single-step `ensure_self()`
 already covered by the Slice 20 dashboard reskin — there is no separate wizard
 surface for it.
+
+## AM — Loading, error, and receipt polish (Slice 25, manual)
+
+> Visual/UX review; strictly additive — no action/mutation code touched, no new
+> SQL, no existing render branch removed. Verified: full 143-test suite,
+> typecheck, lint, core-boundary, secret-scan, and production build all green
+> both before and after this slice, with the diff scoped to new files plus
+> defensive guards (never replacing a working code path).
+
+**What it delivers:**
+- **Loading skeletons** (`loading.tsx` for `/dashboard`, `/orders`, `/admin`,
+  `/onboarding/designer`) — Next.js Suspense boundaries per route, rendering
+  shape-matched `Skeleton` placeholders instead of a spinner while the real page
+  fetches. Purely additive: only ever shown during navigation/streaming, never
+  replaces the actual page's logic.
+- **Specific error states** instead of silently swallowed query failures: `/orders`
+  (list + detail) and `/onboarding/designer` now check every query result for an
+  `.error` and show a message + "reload to try again" instead of rendering an
+  empty state that would otherwise look identical to "you have none of these."
+  The order timeline's own fetch got the same treatment (a distinct "Couldn't
+  load history: …" line instead of a silently-empty timeline).
+- **`app/error.tsx`** (global error boundary) and **`app/not-found.tsx`** — styled
+  on the design tokens, with a specific message + "Try again" / "Go to dashboard"
+  next steps, replacing Next's default unstyled fallback.
+- **Receipts**: rather than build a new toast/redirect confirmation mechanism
+  (which would have meant touching every one of the ~13 existing server
+  actions — real regression risk for a purely cosmetic gain), the order detail
+  now shows **"Recorded" — the timestamp of the most recent timeline entry** —
+  right next to the status badge. Every action already produces a timestamped
+  audit entry (Slice 22); this surfaces that as the receipt, with zero new
+  mutation-side code.
