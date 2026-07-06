@@ -12,6 +12,7 @@ const ROUTES = [
   "/security",
   "/about",
   "/for-designers",
+  "/apply-designer",
   "/contact",
   "/blog",
   "/privacy",

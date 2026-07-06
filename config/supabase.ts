@@ -23,6 +23,9 @@ export function readSupabaseConfig(
 /** The private bucket order files live in. Never public. */
 export const ORDER_FILES_BUCKET = "order-files";
 
+/** The private bucket Stage-1 designer application portfolio files live in. Never public. */
+export const DESIGNER_APPLICATION_FILES_BUCKET = "designer-application-files";
+
 /** Signed download URLs are short-lived. */
 export const SIGNED_URL_TTL_SECONDS = 60;
 

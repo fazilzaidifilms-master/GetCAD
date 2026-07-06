@@ -38,13 +38,20 @@ export default function ForDesignersPage() {
           Consistent work. No client acquisition. No payment chasing.
         </h1>
         <p className="mt-4 text-sm text-muted-foreground">
-          Sign up, complete onboarding, and accept the platform&apos;s operating agreement. Once
-          active, you&apos;re eligible to be assigned work — the platform handles client
-          acquisition, payment collection, and quality review.
+          Start with a short screening application — about two minutes. If it looks like a fit,
+          we follow up and walk you through the real onboarding: identity verification, the
+          platform&apos;s operating agreement, and a paid test order. Once active, you&apos;re
+          eligible to be assigned work — the platform handles client acquisition, payment
+          collection, and quality review.
         </p>
-        <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "mt-6" })}>
-          Apply as a designer
-        </Link>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link href="/apply-designer" className={buttonVariants({ size: "lg" })}>
+            Apply as a designer
+          </Link>
+          <Link href="/sign-in" className="text-sm text-muted-foreground hover:text-foreground">
+            Already onboarded? Sign in →
+          </Link>
+        </div>
       </section>
 
       <section className="border-t border-border py-12">
@@ -66,9 +73,13 @@ export default function ForDesignersPage() {
             Onboarding
           </h2>
           <p className="mt-4 text-sm text-muted-foreground">
-            After signing up, you&apos;ll apply as a designer and review the platform&apos;s
-            operating agreement before you can be assigned work. This is a fixed, one-time step —
-            not a recurring negotiation.
+            Onboarding happens in two stages, deliberately. The application is a short screening
+            form — no account, no login, just enough for us to understand your experience and
+            portfolio. If it&apos;s a fit, the second stage is a real review: identity
+            verification, reading and accepting the platform&apos;s operating agreement, and a
+            paid test order before you&apos;re eligible for regular assignment. This is a fixed,
+            one-time step per designer — not a recurring negotiation, and not automated end to
+            end, so every accepted designer has actually been looked at by a person.
           </p>
         </div>
       </section>
