@@ -792,3 +792,126 @@ surface for it.
   right next to the status badge. Every action already produces a timestamped
   audit entry (Slice 22); this surfaces that as the receipt, with zero new
   mutation-side code.
+
+## AN — Marketing lead capture (Slice 26a, deterministic)
+
+**Black-box test:** a marketing site visitor (unauthenticated, `anon` role) can
+submit a Contact Sales lead and have it persist; nobody — not even `anon` or
+`authenticated` — can read or write `marketing_leads` directly.
+
+**Steps:** `tests/db/marketing_leads.test.ts`. As `anon`, call
+`submit_marketing_lead(p_name, p_email, p_message, p_company, p_role)` — a row
+persists with the given fields; `company` is optional (`NULL` if omitted);
+`role` defaults to `BUSINESS`. Invalid email, empty name/message, or an invalid
+role all raise and no row is written. A direct `SELECT` or `INSERT` against
+`marketing_leads` as `anon` — bypassing the function — raises `permission
+denied` (there is no grant at all, not even SELECT: stronger than an
+RLS-empty-result). An authenticated user (arbitrary Clerk `sub`) can also
+submit through the same function. Runs alongside `tests/db/hardening.test.ts`
+(Test AE) to confirm the new table doesn't violate the "no public table grants
+direct writes" invariant.
+
+## AO — Marketing site: blog, contact form, content depth (Slice 26b, manual)
+
+> Visual/UX + content review. `marketing_leads` persistence is proven in AN;
+> this covers the pages and copy built on top of it.
+
+**What it delivers:**
+- **Contact Sales** (`/contact`) — a real form (Name / Company optional /
+  Email / role select / Message) posting to a server action
+  (`submitLeadAction`) that calls `submit_marketing_lead()` via the existing
+  Supabase client (which already degrades to the `anon` role for signed-out
+  visitors — no new client needed). Submitting redirects to
+  `/contact?submitted=1`, which renders a "Message received" confirmation in
+  place of the form.
+- **Blog** (`/blog` index + `/blog/[slug]`) — three sample posts
+  (`components/marketing/blog-posts.ts`, explicitly marked as starter/sample
+  editorial content to be replaced with real posts) covering casting failure
+  modes, the case for structural (not policy-based) anonymity, and the cost of
+  skipping independent QC. Rendered via a small self-contained markdown
+  renderer (`simple-markdown.tsx`, headings/lists/bold only, no
+  `dangerouslySetInnerHTML`). Each post page is statically generated
+  (`generateStaticParams`) with its own SEO metadata and ends with the shared
+  `CtaSection`.
+- **Homepage depth** — added a "From the blog" teaser (3 post cards linking
+  into `/blog`) and an FAQ section (`FaqSection`, 6 questions grounded only in
+  already-built functionality: anonymity, disputes, escrow, the audit trail,
+  and assignment) before the closing CTA.
+- **Navigation completeness** — header/footer/CTA section updated so every
+  non-auth link resolves to a real page: "Contact sales" added to the header,
+  footer, and the CTA section's client-side column; "Blog" added to the header
+  nav and footer's Product column.
+- `app/sitemap.ts` extended with `/contact`, `/blog`, and one entry per blog
+  post slug.
+
+## AP — Designer application, Stage 1 (Slice 27a, deterministic)
+
+**Black-box test:** any visitor (unauthenticated, `anon` role) can submit the
+7-field screening application and have it persist as a lead — not a
+`users`/`designer_profiles` row; nobody can read or write
+`designer_applications` directly; the submission is recorded in the audit log.
+
+**Steps:** `tests/db/designer_applications.test.ts`. As `anon`, call
+`submit_designer_application(p_id, p_full_name, p_email, p_phone, p_country,
+p_years_experience, p_primary_software, p_categories, p_portfolio_url,
+p_portfolio_file_keys)` — a row persists with `status = 'PENDING_REVIEW'`.
+Exactly one portfolio path is required: a URL, or 2-3 file keys — providing
+both, neither, or 1/4+ file keys all raise. Invalid email, invalid
+`primary_software` (must be `RHINO`/`MATRIX`/`3DESIGN`/`OTHER`), an empty or
+invalid `categories` array (must be a non-empty subset of
+`RINGS`/`PENDANTS`/`EARRINGS`/`BRACELETS`/`BANGLES`), and years of experience
+outside 0-60 all raise and no row is written. A direct `SELECT` or `INSERT`
+against `designer_applications` as `anon` — bypassing the function — raises
+`permission denied` (no grant at all, matching `marketing_leads`). An
+authenticated user can also submit. Unlike `marketing_leads`, this writes an
+audited `APPLICATION_SUBMITTED` entry (`actor_id`/`actor_role` both `NULL` —
+the applicant isn't a platform user yet); the payload deliberately excludes
+contact PII (name/email/phone stay in the table row only). `audit.verify_chain()`
+stays valid. Runs alongside `tests/db/hardening.test.ts` (Test AE).
+
+## AQ — Designer application form (Slice 27b, manual)
+
+> Storage-dependent for the file-upload path, so full end-to-end file testing
+> is manual. Persistence + validation are already proven deterministically in
+> AP; the sanitization gate itself is proven in Q1.
+
+**Setup (for the file-upload portfolio path):** create a **private** Supabase
+Storage bucket named `designer-application-files` (Dashboard → Storage → New
+bucket, "Public" OFF) — same setup as `order-files` (Test R). The
+link-to-portfolio path needs no Storage setup at all.
+
+**What it delivers:**
+- `/apply-designer` — a single-page, 7-field form (full name; email + phone;
+  country; years of CAD experience; primary software; jewelry categories,
+  multi-select, min 1; portfolio as either a URL or 2-3 file uploads, the
+  applicant's choice), built with `react-hook-form` + a shared Zod schema
+  (`lib/validation/designerApplication.ts`) used for both instant client-side
+  field errors and server-side re-validation — the first use of this pattern
+  in the app; every other existing form uses plain FormData + DB-side
+  validation only.
+- Portfolio file uploads go through the same sanitization gate as order files
+  (`core/files/sanitizationGate.ts` — magic-byte verified, renamed to an
+  opaque id, original filename discarded) before being written to the new
+  private bucket; the metadata row is only recorded after a successful
+  upload, and any partially-uploaded files are removed if the submission
+  ultimately fails.
+- Submitting shows an inline error (not a crash) on validation/upload failure,
+  or navigates to `/apply-designer?submitted=1`, which renders "Application
+  received" — no dashboard access, no login created at this stage.
+- A `Stepper` (Application → Review → Onboarding, current step 0) and explicit
+  copy make clear this is a short screening step, not the real onboarding —
+  the real gate (identity verification, the operating agreement, a paid test
+  order) remains `apply_as_designer()` / `accept_designer_agreement()` (0009/0011),
+  wired up manually per accepted candidate.
+- `/for-designers` and the footer now link to `/apply-designer` instead of
+  routing designer signup through `/sign-up`; `/sign-up` is unchanged for
+  everyone else. `app/sitemap.ts` extended with `/apply-designer`.
+
+**Steps:** visit `/apply-designer`. Submit with an empty field — see the
+field-level error appear without a page reload. Fill all 7 fields, choose
+"Link to portfolio," submit a URL — land on the confirmation screen. Repeat
+choosing "Upload files," attach 2-3 PDFs/images — same confirmation. Query
+`designer_applications` (e.g. via the Supabase dashboard) to confirm the row,
+`status = 'PENDING_REVIEW'`, and (for the file path) that
+`designer-application-files` contains only opaquely-named objects, never the
+original filenames.
