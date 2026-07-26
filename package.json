@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "db:apply": "node scripts/apply-migrations.mjs",
     "secret-scan": "node scripts/secret-scan.mjs",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run secret-scan"
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run secret-scan",
+    "db:status": "node scripts/apply-migrations.mjs --status",
+    "db:baseline": "node scripts/apply-migrations.mjs --baseline"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.5",

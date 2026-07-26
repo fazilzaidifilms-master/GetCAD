@@ -15,7 +15,17 @@
  * deterministic and testable. Nothing here touches storage or the network.
  */
 
-export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MiB
+/**
+ * Hard ceiling for a single upload.
+ *
+ * This is NOT a free choice: uploads reach us through Next Server Actions, so
+ * the transport's `bodySizeLimit` (next.config.mjs UPLOAD_BODY_LIMIT_MB) is the
+ * real cap. A value larger than that would advertise a size the request could
+ * never carry — which is exactly the bug this constant used to have (100 MiB
+ * declared here vs Next's silent 1 MB default).
+ * tests/config/upload-limits.test.ts asserts the two agree.
+ */
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MiB
 
 /** mime -> verified extension + how to recognise it. */
 interface TypeRule {

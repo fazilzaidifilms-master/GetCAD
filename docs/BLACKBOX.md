@@ -915,3 +915,52 @@ choosing "Upload files," attach 2-3 PDFs/images — same confirmation. Query
 `status = 'PENDING_REVIEW'`, and (for the file path) that
 `designer-application-files` contains only opaquely-named objects, never the
 original filenames.
+
+## AQ — Pre-deploy fix pack (Slice 28, deterministic)
+
+> Four production blockers found by a code audit of the merged work, plus the
+> first app-layer tests. Every item here has an automated guard — the point of
+> the slice is that none of these could have been caught by the 163 tests that
+> existed, because none of them crossed the app layer.
+
+**AQ1 — upload limits agree across the stack** (`tests/config/upload-limits.test.ts`)
+
+Regression guard for a **shipped bug**: `core/files` advertised a 100 MiB
+ceiling while Next Server Actions silently defaulted to a **1 MB** body limit,
+so every realistic CAD file or PDF failed in transport before the gate ran.
+Uploads are Server Actions, so `next.config.mjs`'s `bodySizeLimit` is the real
+cap. The test asserts an explicit limit is declared, that it is >=
+`MAX_UPLOAD_BYTES`, and that the exported constant matches what Next receives.
+Verified by reintroducing the bug: 3 of the 4 tests fail.
+
+**AQ2 — Server Action allowed origins** (`tests/config/server-action-origins.test.ts`)
+
+`"*.app.github.dev"` was trusted for Server Actions in **all** environments. It
+is a domain anyone can obtain a subdomain on, so trusting it in production
+weakens Next's origin (CSRF) check for the deployed site. It is genuinely needed
+in dev (Codespaces proxies from a forwarded host), so the config is now
+environment-dependent. Tests pin both directions: absent in production, present
+in development, and a real deployment host can be added via
+`NEXT_SERVER_ACTION_ALLOWED_ORIGINS`.
+
+**AQ3 — shared validation schema** (`tests/validation/designerApplication.test.ts`)
+
+`lib/validation/designerApplication.ts` is the validation source of truth for a
+public form and is re-run server-side, yet had no tests. Covers coercion,
+trimming, every field rule, the category allowlist, and the URL-vs-files
+portfolio branch (a URL is required only on the url path).
+
+**AQ4 — public form rate limiting** (`tests/db/rate_limits.test.ts`)
+
+`/contact` and `/apply-designer` were unbounded. `check_rate_limit()` is a
+sliding window: allows up to the limit then blocks, keeps buckets independent
+(one visitor cannot block another, and one form cannot block the other), records
+nothing once blocked, forgets hits that age out, rejects nonsensical arguments,
+and `anon` cannot touch the table directly.
+
+**Migration runner (manual check).** `npm run db:apply` is now safe to re-run —
+applied files are recorded in `public.schema_migrations` and skipped, not
+replayed. Verified end to end: apply to an empty DB, immediately re-run (a
+no-op), then drop the ledger to simulate a pre-ledger database — the old failure
+(`type "role" already exists`) reproduces, and `npm run db:baseline` resolves it
+so subsequent applies are clean. `npm run db:status` reports applied vs pending.

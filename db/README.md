@@ -27,6 +27,7 @@ leaves no reviewable, replayable history.
   - `0016_order_timeline.sql` — `public.order_timeline(order_id)`: a client-safe, order-scoped window onto the audit log (whitelisted lifecycle actions only, every row stripped of `actor_id` — only `actor_role` travels). Re-derives the exact visibility of orders RLS (0003 client/designer/QC + 0006 staff-queue) since a SECURITY DEFINER function bypasses RLS. Powers the order timeline + the visible independent-QC milestone.
   - `0017_marketing_leads.sql` — `marketing_leads` (public Contact Sales inbox), deliberately isolated from the order/user domain (no FKs, no audit-log entry — a form submitter is not a platform user). Sole write path is `public.submit_marketing_lead()` (SECURITY DEFINER); the table itself carries no direct grants, matching the same "no public table grants direct writes" convention as everywhere else.
   - `0018_designer_applications.sql` — `designer_applications`: Stage 1 of designer onboarding, a public screening lead (NOT a `users`/`designer_profiles` row — conversion happens manually per-candidate after staff review). Sole write path is `public.submit_designer_application()` (SECURITY DEFINER, no direct table grants); unlike `marketing_leads` this DOES write an audited `APPLICATION_SUBMITTED` entry (actor_id/actor_role NULL — the applicant isn't a platform user), since staff need an operational record of applications. Enforces exactly one portfolio path (a URL, or 2-3 sanitized file keys) at both the table CHECK and the function.
+  - `0019_rate_limits.sql` — `rate_limit_events` + `public.check_rate_limit()`: a sliding-window limiter for the PUBLIC forms. Database-backed on purpose (an in-process counter resets on every serverless cold start). Stores only a salted hash of the client address, never an IP; blocked calls record nothing, so a sustained attacker cannot inflate the table.
 - `policies/` — Row-Level Security, applied after migrations:
   - `0001_enable_rls_default_deny.sql` — RLS on every table, **zero allow policies** (locked shut).
   - `0002_grants.sql` — anon/authenticated grants mirroring Supabase, so default-deny is proven at the RLS layer.
@@ -43,6 +44,7 @@ leaves no reviewable, replayable history.
   - `0013_harden_base_grants.sql` — defense-in-depth: revokes `INSERT/UPDATE/DELETE` on the base tables (`users`, `orders`, `client_profiles`, `designer_profiles`) from `anon`/`authenticated`. All writes go through SECURITY DEFINER functions (which bypass grants+RLS), so direct writes are locked at the grant level — the ONLY write path is the audited functions. `SELECT` stays (RLS scopes it).
   - `0014_marketing_leads_rls.sql` — RLS enabled + forced on `marketing_leads` with **zero** allow policies (not even SELECT) — direct access is denied to every role, anon included. The only way in is `submit_marketing_lead()`, which runs as the function owner and bypasses RLS entirely.
   - `0015_designer_applications_rls.sql` — same zero-allow-policy treatment for `designer_applications`. Staff review reads the table via the service-role admin client (BYPASSRLS), never through a client-scoped policy.
+  - `0016_rate_limits_rls.sql` — zero allow policies on `rate_limit_events`; `check_rate_limit()` is the only path in.
 
 ## Order state machine
 
@@ -108,12 +110,27 @@ the portable equivalent of Supabase's `auth.jwt()->>'sub'`, and equals our
 ## Applying
 
 ```bash
-# Local throwaway Postgres or any database:
+# Apply everything not yet applied (safe to re-run):
 DATABASE_URL=postgres://user:pass@host:5432/db npm run db:apply
+
+# See what is applied vs pending, change nothing:
+DATABASE_URL=... npm run db:status
+
+# ONE-TIME, for a database that already has the schema but no ledger:
+DATABASE_URL=... npm run db:baseline
 ```
 
-`scripts/apply-migrations.mjs` runs every file in `migrations/` then `policies/`
-in filename order, inside a transaction per file.
+`scripts/apply-migrations.mjs` applies each pending file in `migrations/` then
+`policies/` in filename order, inside a transaction per file — and records it in
+`public.schema_migrations` in that same transaction, so a failed file records
+nothing and can be retried.
+
+**Re-running is safe.** Applied files are skipped, not replayed. (Before this
+ledger existed the script replayed everything and died on the first
+`CREATE TYPE`/`CREATE TABLE` that already existed, which made it unusable
+against any live database.) A database built before the ledger existed needs
+`npm run db:baseline` once — that records the current files as applied without
+executing them; afterwards `db:apply` only ever runs genuinely new files.
 
 ## Non-negotiables encoded here
 
