@@ -329,12 +329,25 @@ export function OrderDetail({
             ))}
           </ul>
           {isParticipant && (
-            <form action={uploadFileAction} className="mt-3 flex items-center gap-2">
+            <form action={uploadFileAction} className="mt-3">
               <input type="hidden" name="order_id" value={o.id} />
-              <input type="file" name="file" required aria-label="Upload a file" className="text-sm" />
-              <Button type="submit" variant="outline" size="sm">
-                Upload
-              </Button>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  name="file"
+                  required
+                  accept=".png,.jpg,.jpeg,.step,.stp"
+                  aria-label="Upload a file"
+                  className="text-sm"
+                />
+                <Button type="submit" variant="outline" size="sm">
+                  Upload
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                PNG, JPEG or STEP. Identifying metadata (EXIF, author and organisation fields) is
+                removed before the file is stored — formats we cannot clean are not accepted here.
+              </p>
             </form>
           )}
         </Panel>

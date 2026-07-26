@@ -63,12 +63,16 @@ export async function submitDesignerApplicationAction(
       for (const file of files) {
         const bytes = new Uint8Array(await file.arrayBuffer());
         const opaqueId = generateId();
+        // NOT the double-blind path: this portfolio arrives attached to the
+        // applicant's own name, email and phone, and only staff read it. So the
+        // broad allowlist applies (PDF/ZIP portfolios are normal here) and no
+        // metadata stripping is required — there is no identity to protect.
         const gate = sanitizeUpload(
           {
             filename: file.name,
             declaredMimeType: file.type,
             sizeBytes: file.size,
-            header: bytes.subarray(0, 16),
+            bytes,
           },
           opaqueId,
         );
@@ -79,7 +83,7 @@ export async function submitDesignerApplicationAction(
         const objectKey = `${applicationId}/${gate.file.objectName}`;
         const up = await admin.storage
           .from(DESIGNER_APPLICATION_FILES_BUCKET)
-          .upload(objectKey, bytes, { contentType: gate.file.contentType, upsert: false });
+          .upload(objectKey, gate.file.bytes, { contentType: gate.file.contentType, upsert: false });
         if (up.error) {
           return { ok: false, error: "Upload failed. Please try again." };
         }
