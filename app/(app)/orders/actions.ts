@@ -37,6 +37,26 @@ export async function transitionAction(formData: FormData): Promise<void> {
   revalidatePath("/orders");
 }
 
+/**
+ * The independent QC decision. Deliberately NOT transition_order: the DB needs
+ * to record WHO reviewed and check they did not produce the work, so the
+ * decision has its own function (same pattern as the money and dispute layers).
+ */
+export async function qcDecisionAction(formData: FormData): Promise<void> {
+  const orderId = formData.get("order_id")?.toString() ?? "";
+  const outcome = formData.get("outcome")?.toString() ?? "";
+  const notes = formData.get("notes")?.toString().trim() || null;
+
+  const supabase = await createUserSupabaseClient();
+  const { error } = await supabase.rpc("record_qc_decision", {
+    p_order_id: orderId,
+    p_outcome: outcome,
+    p_notes: notes,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+}
+
 // --- Money layer (escrow). Each just calls the DB function AS THE USER; the DB
 // enforces role, state, and money conservation. ---
 

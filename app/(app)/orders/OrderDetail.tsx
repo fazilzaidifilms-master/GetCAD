@@ -14,6 +14,7 @@ import {
   postMessageAction,
   raiseDisputeAction,
   resolveDisputeAction,
+  qcDecisionAction,
 } from "./actions";
 import { uploadFileAction } from "./fileActions";
 import { OrderTimeline } from "./OrderTimeline";
@@ -117,15 +118,19 @@ export function OrderDetail({
             Your decision is recorded on the client&apos;s timeline as &quot;Independent QC review:
             passed&quot; or &quot;revision requested&quot;, by role only.
           </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your decision is recorded against your account so the review is attributable and
+            payable. You cannot review work you produced.
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <form action={transitionAction}>
+            <form action={qcDecisionAction}>
               <input type="hidden" name="order_id" value={o.id} />
-              <input type="hidden" name="to_status" value="CLIENT_PREVIEW" />
+              <input type="hidden" name="outcome" value="PASS" />
               <Button type="submit">Pass — send to client preview</Button>
             </form>
-            <form action={transitionAction}>
+            <form action={qcDecisionAction}>
               <input type="hidden" name="order_id" value={o.id} />
-              <input type="hidden" name="to_status" value="REVISION_REQUESTED" />
+              <input type="hidden" name="outcome" value="REVISION" />
               <Button type="submit" variant="outline">
                 Request revision
               </Button>

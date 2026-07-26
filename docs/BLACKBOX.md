@@ -1023,3 +1023,44 @@ download it back via the app, and inspect it (`exiftool`, or Finder/Explorer
 properties). Every camera, author and GPS field should be gone. Then try
 uploading a PDF to an order — it is refused with a clear reason. The same PDF
 still uploads fine as an application portfolio at `/apply-designer`.
+
+## AS — Independent QC: enforced, recorded, payable (Slice 30, deterministic)
+
+> The product's second core promise — "reviewed by someone who did not design
+> it" — had **nothing behind it in code**. Three defects, all closed here.
+
+**What was wrong.** `orders` had `client_id` and `designer_id` but **no QC
+column at all**, so no reviewer was ever recorded. QC transitions were gated
+only on `actor_role = 'QC'`, and STAFF-scope moves skip the party check
+entirely — the only thing preventing a designer from reviewing their own work
+was the accident that `users.role` holds a single value. That is not a rule, and
+it does not survive one person holding two accounts. And `release_escrow` wrote
+a `RELEASE` leg to `party='QC'` with **no record of which reviewer earned it** —
+an unattributable payout obligation sitting in the money ledger.
+
+**The model: claim-on-action, not pre-assignment.** QC stays a pool — whoever is
+free works the queue — but the reviewer is recorded at the moment they decide,
+and independence is checked then. Attribution without an assignment bottleneck;
+pre-assignment can be layered on later without reworking any of it.
+
+**AS — the decision** (`tests/db/qc_identity.test.ts`). A QC user passing or
+requesting revision is recorded in `orders.qc_reviewer_id`. **Self-review is
+refused** — tested with the sharpest case, a user who holds the QC role *and*
+produced the work: the call raises and the order does not move. Reviewing your
+own order as the client is refused too. Only QC may decide, only on a
+`QC_REVIEW` order, only with `PASS`/`REVISION`. `transition_order` can no longer
+perform a QC decision at all. An order cannot be **assigned** to the designer who
+already reviewed it. A reviewer keeps visibility of orders they decided, and an
+unrelated QC user does not.
+
+**AS2 — the payout.** Every `RELEASE` leg now records `payee_id`: the designer
+for the designer leg, the recorded reviewer for the QC leg, `NULL` for the
+platform (not a user row). Releasing a QC payout when **no reviewer was ever
+recorded** is refused, nothing is written, and the order stays `CLOSED`. Money
+conservation and the audit chain are re-verified after release.
+
+**Consequence for existing flows.** `transition_order` is no longer the way to
+move an order out of `QC_REVIEW`; the QC panel and two existing test
+walkthroughs now call `record_qc_decision()`. Any order that reaches
+`PAYOUT_RELEASED` with a non-zero `qc_payout` must have a recorded reviewer —
+by construction, since the only way out of `QC_REVIEW` now records one.
