@@ -2,6 +2,7 @@
 
 import { generateId, sanitizeUpload } from "@/core";
 import { DESIGNER_APPLICATION_FILES_BUCKET } from "@/config/supabase";
+import { DESIGNER_APPLICATION_LIMIT, checkRateLimit } from "@/lib/rateLimit";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 import { designerApplicationFieldsSchema, portfolioFilesError } from "@/lib/validation/designerApplication";
@@ -16,6 +17,18 @@ export type SubmitDesignerApplicationResult = { ok: true } | { ok: false; error:
 export async function submitDesignerApplicationAction(
   formData: FormData,
 ): Promise<SubmitDesignerApplicationResult> {
+  const allowed = await checkRateLimit(
+    DESIGNER_APPLICATION_LIMIT.scope,
+    DESIGNER_APPLICATION_LIMIT.max,
+    DESIGNER_APPLICATION_LIMIT.windowSeconds,
+  );
+  if (!allowed) {
+    return {
+      ok: false,
+      error: "Too many applications from this network. Please try again later.",
+    };
+  }
+
   const raw = {
     fullName: formData.get("fullName")?.toString() ?? "",
     email: formData.get("email")?.toString() ?? "",

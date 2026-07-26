@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { CONTACT_LIMIT, checkRateLimit } from "@/lib/rateLimit";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 // Works for signed-out visitors too: createUserSupabaseClient() attaches a
@@ -13,6 +14,15 @@ export async function submitLeadAction(formData: FormData): Promise<void> {
   const email = formData.get("email")?.toString().trim() ?? "";
   const role = formData.get("role")?.toString() || "BUSINESS";
   const message = formData.get("message")?.toString().trim() ?? "";
+
+  const allowed = await checkRateLimit(
+    CONTACT_LIMIT.scope,
+    CONTACT_LIMIT.max,
+    CONTACT_LIMIT.windowSeconds,
+  );
+  if (!allowed) {
+    throw new Error("Too many submissions from this network. Please try again later.");
+  }
 
   const supabase = await createUserSupabaseClient();
   const { error } = await supabase.rpc("submit_marketing_lead", {
