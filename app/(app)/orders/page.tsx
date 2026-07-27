@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { type TransitionRow } from "@/core";
+import { escrowSign, type TransitionRow } from "@/core";
 import { ErrorPanel } from "@/components/error-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { TrustLine } from "@/components/trust-line";
@@ -87,7 +87,7 @@ export default async function OrdersPage({
   const heldFor = (orderId: string): number =>
     ledger
       .filter((l) => l.order_id === orderId)
-      .reduce((net, l) => net + (l.kind === "HOLD" ? l.amount : -l.amount), 0);
+      .reduce((net, l) => net + escrowSign(l.kind) * l.amount, 0);
 
   // --- Detail view ---------------------------------------------------------
   if (focus) {

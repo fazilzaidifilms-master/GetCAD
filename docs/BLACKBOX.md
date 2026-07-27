@@ -1064,3 +1064,58 @@ move an order out of `QC_REVIEW`; the QC panel and two existing test
 walkthroughs now call `record_qc_decision()`. Any order that reaches
 `PAYOUT_RELEASED` with a non-zero `qc_payout` must have a recorded reviewer —
 by construction, since the only way out of `QC_REVIEW` now records one.
+
+## AT — Settlement ledger, ready for a processor (Slice 31, deterministic)
+
+> The last schema blocker before payments. Deliberately **processor-agnostic** —
+> nothing here names Stripe or Razorpay, so the choice can be made when the
+> integration slice starts rather than baked into the ledger now.
+
+**What the ledger could not represent, and now can:**
+
+| Gap | Consequence | Fix |
+|---|---|---|
+| No processor reference | a webhook could not be matched to a ledger row | `external_ref` |
+| No dedupe key | processors deliver at-least-once; a redelivered payout would double-count | UNIQUE `idempotency_key` |
+| Only HOLD/RELEASE/REFUND | chargebacks, failed payouts and processor fees had nowhere to go | `PROCESSOR_FEE`, `CHARGEBACK`, `REVERSAL` kinds; `PROCESSOR` party |
+| Refund was all-or-nothing | "refund half" was impossible | `refund_escrow(order, amount DEFAULT NULL)` |
+| Terminal states had no exits | a chargeback after `PAYOUT_RELEASED` was unrepresentable | money events no longer require a status change |
+| Conservation lived in function logic | any other write path could overdraw an order | a **trigger on the table** |
+
+**AT1/AT2 — the sign rule** (`core/money/escrowSign.test.ts`). Both SQL and TS
+inlined `kind === "HOLD" ? amount : -amount`, which is correct only while HOLD is
+the sole credit. A `REVERSAL` — a payout that failed and came back — would have
+been **subtracted**, understating the client's balance in the platform's favour.
+Direction now lives in one place per layer (`app.escrow_sign()` /
+`core/money/escrowSign.ts`) and **throws on an unknown kind** instead of
+defaulting. The test asserts the old shortcut and the correct rule disagree.
+
+**AT3 — parity.** The SQL sign map is asserted kind-by-kind, and a REVERSAL is
+shown adding funds back after a release.
+
+**AT4 — conservation as a table rule.** A direct `INSERT` that debits more than
+is held is refused **even though it bypasses every escrow function**; draining an
+order twice is refused; credits are never limited.
+
+**AT5 — partial refunds.** A partial refund leaves the order `PAYMENT_HELD` and
+reports `PARTIALLY_REFUNDED`; only a refund that empties escrow moves the order
+to `REFUNDED`. Over-refunding, non-positive amounts and non-FINANCE callers are
+all refused.
+
+**AT6 — processor events.** A chargeback after `PAYOUT_RELEASED` is recorded and
+**the order's lifecycle status is left untouched** — fulfilment history is not
+rewritten to describe a money fact; `settlement_state()` reports `CHARGED_BACK`
+instead. A redelivered event raises on the unique key rather than double-counting.
+`record_settlement_event()` is `service_role` only: an authenticated user gets
+`permission denied`.
+
+**AT7 — derived settlement.** `settlement_state()` reports UNFUNDED / HELD /
+PARTIALLY_REFUNDED / REFUNDED / SETTLED / CHARGED_BACK from the ledger, with the
+audit chain re-verified.
+
+> **Known duplication, deliberately not fixed here.** `order_status` still
+> carries `PAYMENT_HELD`/`PAYOUT_RELEASED`/`REFUNDED` — money facts wearing a
+> lifecycle costume. Removing them means rewriting the transition graph, every
+> screen and every test: a large, risky change for no user-visible gain today.
+> Settlement is DERIVED instead, and **the ledger is authoritative when the two
+> disagree**.
