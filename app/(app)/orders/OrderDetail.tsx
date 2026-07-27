@@ -8,7 +8,6 @@ import { formatMoney } from "@/lib/money";
 import {
   transitionAction,
   quoteAction,
-  holdEscrowAction,
   releaseEscrowAction,
   refundEscrowAction,
   postMessageAction,
@@ -17,6 +16,7 @@ import {
   qcDecisionAction,
 } from "./actions";
 import { uploadFileAction } from "./fileActions";
+import { PayButton } from "./PayButton";
 import { OrderTimeline } from "./OrderTimeline";
 import type { DisputeRow, MessageRow, OrderRow, VersionRow } from "./types";
 
@@ -115,12 +115,10 @@ export function OrderDetail({
       {isQcDecision && (
         <Panel title="Independent QC review">
           <p className="text-sm text-muted-foreground">
-            Your decision is recorded on the client&apos;s timeline as &quot;Independent QC review:
-            passed&quot; or &quot;revision requested&quot;, by role only.
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Your decision is recorded against your account so the review is attributable and
-            payable. You cannot review work you produced.
+            Your decision appears on the client&apos;s timeline as &quot;Independent QC review:
+            passed&quot; or &quot;revision requested&quot;, by role only. It is recorded against
+            your account so the review is attributable and payable — you cannot review work you
+            produced.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <form action={qcDecisionAction}>
@@ -242,10 +240,7 @@ export function OrderDetail({
               </form>
             )}
             {canFund && (
-              <form action={holdEscrowAction}>
-                <input type="hidden" name="order_id" value={o.id} />
-                <Button type="submit">Fund escrow — pay {formatMoney(o.price_total, o.currency)}</Button>
-              </form>
+              <PayButton orderId={o.id} amount={o.price_total} currency={o.currency} />
             )}
             {canRelease && (
               <form action={releaseEscrowAction}>

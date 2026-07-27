@@ -1119,3 +1119,81 @@ audit chain re-verified.
 > screen and every test: a large, risky change for no user-visible gain today.
 > Settlement is DERIVED instead, and **the ledger is authoritative when the two
 > disagree**.
+
+## AU — Payment collection via Razorpay (Slice 32, deterministic + manual)
+
+> The first slice where real money moves. India-first: Razorpay, INR, domestic
+> designers. The SQL stays processor-agnostic; only the app layer names Razorpay.
+
+**The security change this slice exists for.** `hold_escrow()` used to be a
+button the CLIENT pressed — the ledger recorded a HOLD with no payment behind
+it. Harmless while the money layer was a simulation; the moment a processor
+exists it means **a client can fund their own order for free**. So funding moves
+from *the client asserts it* to *the processor confirms it*:
+
+- `hold_escrow` is **REVOKED from `authenticated`**
+- `confirm_payment()` is `service_role` only, reachable solely through the
+  webhook route, which verifies an HMAC signature before reading the payload
+- `payment_intents` records what we asked to collect **before** the client
+  touches Razorpay, so the confirmation is checked against **our** amount rather
+  than the webhook's
+
+**AU1 — webhook signature** (`core/payments/razorpaySignature.test.ts`).
+Correctly signed bodies pass; a body tampered *after* signing (amount inflated)
+fails; a signature made with the API key secret instead of the **webhook**
+secret fails (the most common Razorpay integration mistake); missing/empty/
+non-hex signatures fail; no configured secret fails **closed**. One test pins
+that re-serialising the JSON breaks the digest — the reason the route must use
+the raw body and must never be "tidied up" to parse first.
+
+**AU2 — checkout callback signature.** Verifies `order_id|payment_id` keyed by
+the API secret, and rejects swapped ids. Used only to show the user a
+confirmation — never to settle money, because it arrives via the browser.
+
+**AU3 — payload parsing.** Extracts our own order id back out of Razorpay's
+`notes`; returns `null` rather than guessing for any missing field, a
+non-integer/zero/negative amount, an unhandled event, or junk input.
+
+**AU4 — nobody can self-fund** (`tests/db/payment_collection.test.ts`). The
+client calling `hold_escrow` gets `permission denied` and the order stays
+`QUOTED` with zero held. `confirm_payment` and `open_payment_intent` are equally
+out of reach.
+
+**AU5 — opening a collection.** The intent amount comes from the ORDER, not the
+caller. Non-`QUOTED` orders and duplicate external references are refused.
+
+**AU6 — confirming.** A matching payment funds escrow, moves the order to
+`PAYMENT_HELD`, and stamps the ledger row with Razorpay's payment id. **A webhook
+claiming ₹1 for a ₹45,000 order is refused** and nothing moves. Currency
+mismatch, unknown reference, and a missing idempotency key are all refused. A
+**redelivered webhook is a no-op** — still one ledger leg, still the same held
+amount. An order that moved on can no longer be funded.
+
+**AU7 — failures and visibility.** A failed collection marks the intent `FAILED`
+and touches neither money nor the order (still payable). `payment_intents` is
+unreadable by any client role. The audit chain stays valid throughout.
+
+**AU8 — the webhook must stay reachable** (`core/auth/session.test.ts`).
+`/api/webhooks/razorpay` must NOT be behind `auth.protect()`: Razorpay carries
+no Clerk cookie, so protecting it would silently break every payment — checkout
+succeeds, the webhook redirects to sign-in, escrow is never funded. Its security
+is the HMAC, not a session.
+
+### Manual test (needs your Razorpay keys)
+
+1. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` in
+   `.env.local` (test mode keys).
+2. In the Razorpay dashboard, add a webhook pointing at
+   `https://<your-host>/api/webhooks/razorpay` for `payment.captured` and
+   `payment.failed`, using the same webhook secret.
+3. Quote an order as SALES, then as the client press **Pay** — Razorpay checkout
+   opens. Complete it with a test card.
+4. The page shows "Payment submitted"; within seconds the order should flip to
+   **PAYMENT_HELD** with escrow funded.
+5. Confirm in the DB: one `escrow_ledger` HOLD row carrying `external_ref =
+   pay_…`, and the matching `payment_intents` row `CONFIRMED`.
+
+> **Not yet built:** designer payouts. Razorpay Route needs linked accounts with
+> KYC (PAN, bank + IFSC), and `designer_profiles.payout_details` is still a
+> single unstructured column. That is the next slice; until it lands,
+> `release_escrow` records the payout in the ledger but no money leaves.

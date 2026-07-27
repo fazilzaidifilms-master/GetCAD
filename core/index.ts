@@ -41,3 +41,7 @@ export type {
 } from "./files/sanitizationGate";
 export { escrowSign, netHeld, ESCROW_KINDS } from "./money/escrowSign";
 export type { EscrowKind } from "./money/escrowSign";
+// NOT re-exported here on purpose: core/payments/razorpaySignature imports
+// node:crypto, and middleware.ts imports this barrel while running on the EDGE
+// runtime, which has no node builtins. Pulling it in here breaks the build.
+// Server-side callers import it directly from core/payments/razorpaySignature.

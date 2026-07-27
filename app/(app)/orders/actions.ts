@@ -89,16 +89,13 @@ export async function quoteAction(formData: FormData): Promise<void> {
   revalidatePath("/orders");
 }
 
-async function escrowRpc(fn: "hold_escrow" | "release_escrow" | "refund_escrow", orderId: string) {
+async function escrowRpc(fn: "release_escrow" | "refund_escrow", orderId: string) {
   const supabase = await createUserSupabaseClient();
   const { error } = await supabase.rpc(fn, { p_order_id: orderId });
   if (error) throw new Error(error.message);
   revalidatePath("/orders");
 }
 
-export async function holdEscrowAction(formData: FormData): Promise<void> {
-  await escrowRpc("hold_escrow", formData.get("order_id")?.toString() ?? "");
-}
 export async function releaseEscrowAction(formData: FormData): Promise<void> {
   await escrowRpc("release_escrow", formData.get("order_id")?.toString() ?? "");
 }

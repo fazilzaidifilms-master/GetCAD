@@ -4,6 +4,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { generateId } from "../../core/ids/generateId";
 import { connectFreshDb } from "../helpers/db";
 
+/**
+ * Fund an order the way production now does: open a collection and confirm it
+ * as the trusted server. The client can no longer call hold_escrow() — that
+ * would let them fund their own order for free (see 0022).
+ */
+async function fundOrder(db: Client, orderId: string): Promise<void> {
+  const ref = `order_rp_${orderId}`;
+  const { rows } = await db.query("SELECT price_total, currency FROM orders WHERE id=$1", [orderId]);
+  await db.query("SELECT public.open_payment_intent($1,$2)", [orderId, ref]);
+  await db.query("SELECT public.confirm_payment($1,$2,$3,$4,$5)", [
+    ref, rows[0].price_total, rows[0].currency, `test:${ref}`, `pay_${orderId}`,
+  ]);
+}
+
+
 let db: Client;
 
 const client = generateId();
@@ -56,7 +71,7 @@ beforeAll(async () => {
   await asUser(client, () => db.query("SELECT public.create_order($1,$2,'USD')", [order, "CAD_MODEL"]));
   await asUser(client, () => db.query("SELECT public.transition_order($1,'SUBMITTED'::order_status)", [order]));
   await asUser(sales, () => db.query("SELECT public.quote_order($1,10000,6000,1000,3000)", [order]));
-  await asUser(client, () => db.query("SELECT public.hold_escrow($1)", [order]));
+  await fundOrder(db, order);
   await asUser(ops, () =>
     db.query("SELECT public.transition_order($1,'ASSIGNED'::order_status,$2::jsonb)", [
       order,

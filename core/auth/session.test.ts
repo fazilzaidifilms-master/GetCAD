@@ -27,3 +27,18 @@ describe("isProtectedPath", () => {
     expect(isProtectedPath("/dashboard-public")).toBe(false);
   });
 });
+
+describe("Test AU8 — the payment webhook must stay reachable", () => {
+  it("does NOT require a session", () => {
+    // Razorpay is server-to-server and carries no Clerk cookie. Putting this
+    // path behind auth.protect() would silently break every payment: checkout
+    // succeeds, the webhook 302s to sign-in, and escrow is never funded.
+    // Its own security is the HMAC signature, not a session.
+    expect(isProtectedPath("/api/webhooks/razorpay")).toBe(false);
+  });
+
+  it("still protects the authenticated product", () => {
+    expect(isProtectedPath("/orders")).toBe(true);
+    expect(isProtectedPath("/dashboard")).toBe(true);
+  });
+});
