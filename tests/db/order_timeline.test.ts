@@ -84,7 +84,7 @@ beforeAll(async () => {
     db.query("SELECT public.transition_order($1,'DESIGNER_SUBMITTED'::order_status)", [order]),
   );
   await asUser(ops, () => db.query("SELECT public.transition_order($1,'QC_REVIEW'::order_status)", [order]));
-  await asUser(qc, () => db.query("SELECT public.transition_order($1,'CLIENT_PREVIEW'::order_status)", [order]));
+  await asUser(qc, () => db.query("SELECT public.record_qc_decision($1,'PASS')", [order]));
 });
 
 afterAll(async () => {
