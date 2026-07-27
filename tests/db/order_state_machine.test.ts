@@ -4,6 +4,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { generateId } from "../../core/ids/generateId";
 import { connectFreshDb } from "../helpers/db";
 
+/**
+ * Fund an order the way production now does: open a collection and confirm it
+ * as the trusted server. The client can no longer call hold_escrow() — that
+ * would let them fund their own order for free (see 0022).
+ */
+async function fundOrder(db: Client, orderId: string): Promise<void> {
+  const ref = `order_rp_${orderId}`;
+  const { rows } = await db.query("SELECT price_total, currency FROM orders WHERE id=$1", [orderId]);
+  await db.query("SELECT public.open_payment_intent($1,$2)", [orderId, ref]);
+  await db.query("SELECT public.confirm_payment($1,$2,$3,$4,$5)", [
+    ref, rows[0].price_total, rows[0].currency, `test:${ref}`, `pay_${orderId}`,
+  ]);
+}
+
+
 let db: Client;
 
 const client = generateId();
@@ -121,8 +136,8 @@ describe("Test M — legal, role-gated, audited order transitions", () => {
   });
 
   it("walks the happy path through roles: pay -> assign -> start", async () => {
-    // The client funds escrow (QUOTED -> PAYMENT_HELD) via hold_escrow.
-    await asUser(client, () => db.query("SELECT public.hold_escrow($1)", [order]));
+    // Escrow is funded by a CONFIRMED PAYMENT, not by the client asserting it.
+    await fundOrder(db, order);
     expect(await statusOf(order)).toBe("PAYMENT_HELD");
 
     // OPS assigns a specific designer (sets designer_id)

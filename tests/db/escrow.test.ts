@@ -4,6 +4,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { generateId } from "../../core/ids/generateId";
 import { connectFreshDb } from "../helpers/db";
 
+/**
+ * Fund an order the way production now does: open a collection and confirm it
+ * as the trusted server. The client can no longer call hold_escrow() — that
+ * would let them fund their own order for free (see 0022).
+ */
+async function fundOrder(db: Client, orderId: string): Promise<void> {
+  const ref = `order_rp_${orderId}`;
+  const { rows } = await db.query("SELECT price_total, currency FROM orders WHERE id=$1", [orderId]);
+  await db.query("SELECT public.open_payment_intent($1,$2)", [orderId, ref]);
+  await db.query("SELECT public.confirm_payment($1,$2,$3,$4,$5)", [
+    ref, rows[0].price_total, rows[0].currency, `test:${ref}`, `pay_${orderId}`,
+  ]);
+}
+
+
 let db: Client;
 
 const client = generateId();
@@ -108,22 +123,29 @@ describe("Test U — escrow ledger + money conservation", () => {
     });
   });
 
-  it("holding records the full price and flips to PAYMENT_HELD; cannot hold twice", async () => {
+  it("funding requires a CONFIRMED PAYMENT — no user role can assert it", async () => {
     const id = await newOrder();
     await quote(id);
-    // only the client may fund
-    await expect(
-      asUser(sales, () => db.query("SELECT public.hold_escrow($1)", [id])),
-    ).rejects.toThrow(/only the order's client/i);
 
-    await asUser(client, () => db.query("SELECT public.hold_escrow($1)", [id]));
+    // Since 0022 nobody funds an order by calling hold_escrow: not the client
+    // (who would otherwise fund their own order for free), not staff.
+    for (const actor of [client, sales]) {
+      await expect(
+        asUser(actor, () => db.query("SELECT public.hold_escrow($1)", [id])),
+      ).rejects.toThrow(/permission denied/i);
+    }
+    expect(await statusOf(id)).toBe("QUOTED");
+    expect(await held(id)).toBe(0);
+
+    // The only path is an opened collection confirmed by the trusted server.
+    await fundOrder(db, id);
     expect(await statusOf(id)).toBe("PAYMENT_HELD");
     expect(await held(id)).toBe(10000);
 
-    // a second hold is impossible (status no longer QUOTED, and the unique index)
+    // And it cannot be funded twice — the order has moved on.
     await expect(
-      asUser(client, () => db.query("SELECT public.hold_escrow($1)", [id])),
-    ).rejects.toThrow(/only fund a QUOTED order/i);
+      db.query("SELECT public.open_payment_intent($1,'order_rp_second')", [id]),
+    ).rejects.toThrow(/only collect payment for a QUOTED order/i);
   });
 
   it("releasing pays legs that sum to the held amount; net held returns to 0 (FINANCE only)", async () => {
@@ -132,7 +154,7 @@ describe("Test U — escrow ledger + money conservation", () => {
     // Walk to CLOSED using a QC user for the QC-role steps.
     const qc = generateId();
     await db.query("INSERT INTO users (id, role, status) VALUES ($1,'QC','ACTIVE')", [qc]);
-    await asUser(client, () => db.query("SELECT public.hold_escrow($1)", [id]));
+    await fundOrder(db, id);
     await asUser(ops, () =>
       db.query("SELECT public.transition_order($1,'ASSIGNED'::order_status,$2::jsonb)", [
         id,
@@ -163,7 +185,7 @@ describe("Test U — escrow ledger + money conservation", () => {
   it("refunding returns the held amount and flips to REFUNDED; release is then impossible", async () => {
     const id = await newOrder();
     await quote(id);
-    await asUser(client, () => db.query("SELECT public.hold_escrow($1)", [id]));
+    await fundOrder(db, id);
 
     await asUser(finance, () => db.query("SELECT public.refund_escrow($1)", [id]));
     expect(await statusOf(id)).toBe("REFUNDED");
@@ -179,7 +201,7 @@ describe("Test U — escrow ledger + money conservation", () => {
   it("the ledger is append-only and the audit chain stays valid", async () => {
     const id = await newOrder();
     await quote(id);
-    await asUser(client, () => db.query("SELECT public.hold_escrow($1)", [id]));
+    await fundOrder(db, id);
     await expect(
       db.query("UPDATE escrow_ledger SET amount = 1 WHERE order_id = $1", [id]),
     ).rejects.toThrow(/append-only/i);
