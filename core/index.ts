@@ -39,3 +39,5 @@ export type {
   GateResult,
   GateOptions,
 } from "./files/sanitizationGate";
+export { escrowSign, netHeld, ESCROW_KINDS } from "./money/escrowSign";
+export type { EscrowKind } from "./money/escrowSign";

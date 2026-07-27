@@ -1,3 +1,5 @@
+import type { EscrowKind } from "@/core";
+
 export interface OrderRow {
   id: string;
   product_type: string;
@@ -21,7 +23,7 @@ export interface VersionRow {
 
 export interface LedgerRow {
   order_id: string;
-  kind: "HOLD" | "RELEASE" | "REFUND";
+  kind: EscrowKind;
   amount: number;
 }
 
