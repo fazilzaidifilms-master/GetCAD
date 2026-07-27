@@ -964,3 +964,62 @@ replayed. Verified end to end: apply to an empty DB, immediately re-run (a
 no-op), then drop the ledger to simulate a pre-ledger database — the old failure
 (`type "role" already exists`) reproduces, and `npm run db:baseline` resolves it
 so subsequent applies are clean. `npm run db:status` reports applied vs pending.
+
+## AR — Metadata stripping (Slice 29, deterministic)
+
+> Closes the second half of file anonymity. Renaming an upload to an opaque id
+> removed the FILENAME; the bytes still carried who made them. On a double-blind
+> marketplace that is a direct breach — the client downloads the deliverable and
+> reads the designer's studio name out of its EXIF.
+
+**The design: two allowlists, because the two upload paths differ.**
+
+| Path | Reader | Allowlist | Metadata stripped? |
+|---|---|---|---|
+| Order deliverable (designer → client) | the other party — **anonymity critical** | `DELIVERABLE_ALLOWLIST` (PNG, JPEG, STEP) | **Required.** A format we cannot clean is refused. |
+| Designer application portfolio | staff, who already have the applicant's name/email/phone on the same form | `DEFAULT_ALLOWLIST` (+ PDF, ZIP) | No — there is no identity to protect. |
+
+**Two deliberate exclusions from the delivery path:**
+- **ZIP** — its central directory stores every internal filename and folder name
+  verbatim, its contents are never inspected, and it therefore defeats the
+  allowlist entirely (any file type can travel inside one).
+- **PDF** — identity lives in the `/Info` dictionary *and* in XMP streams that
+  may be compressed inside object streams. Cleaning that correctly needs a real
+  PDF parser; a partial scrub that still leaks would be worse than an honest
+  refusal.
+
+Both remain accepted on the application path. Re-admitting them to delivery is a
+future slice, not a config change.
+
+**AR1 — PNG** (`core/files/metadataStripper.test.ts`). Rebuilds the chunk stream
+from an allowlist of chunks that affect decoding/rendering. A fixture carrying
+`tEXt`/`iTXt`/`eXIf`/`tIME` with a studio name, email and tool name comes back
+with none of those strings and none of those chunk types, while `IHDR`/`IDAT`/
+`IEND` and the pixel payload survive and the file shrinks.
+
+**AR2 — JPEG.** Drops every `APPn` segment (EXIF, XMP, IPTC, ICC) and `COM`
+comments, including `APP0`/JFIF. A fixture with EXIF `Artist`, XMP `dc:creator`,
+IPTC credit and a comment comes back clean, while DQT/SOF0/SOS and the
+entropy-coded scan data are preserved byte-for-byte.
+
+**AR3 — STEP.** The `HEADER` section names author and organisation outright.
+Rewrites it to neutral values while copying the `DATA` section (the geometry)
+untouched, and **preserves `FILE_SCHEMA`** — replacing that would break
+downstream CAD tools.
+
+**AR4 — dispatch.** An unknown type returns `ok: false` rather than passing
+bytes through uncleaned; `STRIPPABLE_TYPES` is asserted to match what dispatch
+actually handles.
+
+**AR5 — the gate** (`core/files/sanitizationGate.test.ts`). With
+`requireMetadataStrip`, a PNG is accepted and the gate returns **cleaned** bytes
+(callers store `gate.file.bytes`, never their original buffer, and `sizeBytes`
+reports what is actually stored); PDF and ZIP are refused; both are still
+accepted without the flag; and `DELIVERABLE_ALLOWLIST` is asserted to contain
+only formats a stripper handles.
+
+**Manual check:** upload a JPEG with EXIF (any phone photo) to an order,
+download it back via the app, and inspect it (`exiftool`, or Finder/Explorer
+properties). Every camera, author and GPS field should be gone. Then try
+uploading a PDF to an order — it is refused with a clear reason. The same PDF
+still uploads fine as an application portfolio at `/apply-designer`.

@@ -22,14 +22,18 @@ export async function uploadFileAction(formData: FormData): Promise<void> {
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const opaqueId = generateId();
+  // This is the DOUBLE-BLIND delivery path: the client downloads what the
+  // designer uploads, so identifying metadata inside the bytes (EXIF, PNG text
+  // chunks, STEP author/organisation) must be removed, not just the filename.
   const gate = sanitizeUpload(
     {
       filename: file.name,
       declaredMimeType: file.type,
       sizeBytes: file.size,
-      header: bytes.subarray(0, 16),
+      bytes,
     },
     opaqueId,
+    { requireMetadataStrip: true },
   );
   if (!gate.ok) {
     throw new Error(`rejected by sanitization gate: ${gate.reason}`);
@@ -38,9 +42,10 @@ export async function uploadFileAction(formData: FormData): Promise<void> {
   const objectKey = `${orderId}/${gate.file.objectName}`;
 
   const admin = createAdminSupabaseClient();
+  // Store the CLEANED bytes, never the caller's original buffer.
   const up = await admin.storage
     .from(ORDER_FILES_BUCKET)
-    .upload(objectKey, bytes, { contentType: gate.file.contentType, upsert: false });
+    .upload(objectKey, gate.file.bytes, { contentType: gate.file.contentType, upsert: false });
   if (up.error) {
     throw new Error(`storage upload failed: ${up.error.message}`);
   }
