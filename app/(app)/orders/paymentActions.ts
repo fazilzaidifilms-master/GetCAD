@@ -31,13 +31,24 @@ export async function startPaymentAction(formData: FormData): Promise<StartPayme
   if (!orderId) return { ok: false, error: "Missing order." };
 
   const supabase = await createUserSupabaseClient();
-  const { data: order, error } = await supabase
-    .from("orders")
-    .select("id, client_id, status, price_total, currency")
-    .eq("id", orderId)
-    .maybeSingle();
+  const [{ data: order, error }, { data: me }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("id, client_id, status, price_total, currency")
+      .eq("id", orderId)
+      .maybeSingle(),
+    supabase.from("users").select("role").maybeSingle(),
+  ]);
 
   if (error || !order) return { ok: false, error: "Order not found." };
+
+  // ROLE **and** PARTY, matching the contract the removed hold_escrow enforced
+  // and that every other party-scoped action uses (raise_dispute, and the
+  // CLIENT_PARTY/DESIGNER_PARTY scopes in transition_order). Owning the order
+  // is not enough — you must be acting as a CLIENT.
+  if (me?.role !== "CLIENT") {
+    return { ok: false, error: "Only a client can pay for an order." };
+  }
   if (order.client_id !== userId) {
     return { ok: false, error: "Only the client of this order can pay for it." };
   }

@@ -80,11 +80,17 @@ export function OrderDetail({
   const actions = isQcDecision ? allActions.filter((to) => !qcTargets.has(to)) : allActions;
 
   const canQuote = role === "SALES" && o.status === "SUBMITTED";
-  const canFund = isOrderClient && o.status === "QUOTED";
+  // Party AND role. Owning the order is not enough: a staff member who happens
+  // to have created an order must not be offered the client's actions while
+  // acting in a staff role. The server action enforces the same pair.
+  const isActingAsClient = role === "CLIENT" && isOrderClient;
+  const canFund = isActingAsClient && o.status === "QUOTED";
   const canRelease = role === "FINANCE" && o.status === "CLOSED";
   const canRefund = role === "FINANCE" && (o.status === "PAYMENT_HELD" || o.status === "DISPUTED");
+  // raise_dispute() requires role CLIENT too — without this the button appears
+  // for a staff owner and then fails at the database.
   const canRaiseDispute =
-    isOrderClient && (o.status === "IN_PROGRESS" || o.status === "CLIENT_PREVIEW");
+    isActingAsClient && (o.status === "IN_PROGRESS" || o.status === "CLIENT_PREVIEW");
   const showMoney = o.price_total > 0 || canQuote || canFund || canRelease || canRefund;
 
   // The receipt for "what just happened": the timestamp of the most recent
