@@ -1197,3 +1197,31 @@ is the HMAC, not a session.
 > KYC (PAN, bank + IFSC), and `designer_profiles.payout_details` is still a
 > single unstructured column. That is the next slice; until it lands,
 > `release_escrow` records the payout in the ledger but no money leaves.
+
+### AU9 — Scripted end-to-end verification (`npm run verify:payment`)
+
+The manual browser test needs a CLIENT and a SALES user, which is awkward with a
+single Clerk account. `scripts/verify-payment.mjs` exercises the same path
+directly — your real Razorpay test account, a real HMAC signature, your real
+running webhook route, your real database — with no browser and no role juggling.
+
+```bash
+npm run dev                 # in one terminal
+export DATABASE_URL="<your supabase pooler string>"
+npm run verify:payment      # in another
+```
+
+It seeds a QUOTED order, creates a real Razorpay order, opens the intent, then:
+rejects an unsigned webhook (401), rejects a **signed webhook for the wrong
+amount** with nothing funded, accepts the real one and asserts the order reaches
+`PAYMENT_HELD` with a correctly stamped ledger leg, redelivers the same webhook
+and asserts no double-funding, and re-verifies the audit chain. It cleans up
+after itself, pass or fail.
+
+`--offline` skips only the live Razorpay API call (synthetic order id) and
+verifies everything downstream. Use it to tell "my keys aren't active" apart
+from "my webhook is broken".
+
+The one thing it does not cover is typing a card into Razorpay's own checkout
+UI — everything after "Razorpay captured a payment", which is where all of our
+logic lives, is covered.
