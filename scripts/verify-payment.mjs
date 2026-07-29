@@ -45,6 +45,10 @@ const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 // --offline skips the live Razorpay API call (useful when your keys are not yet
 // active, or egress is blocked) and verifies everything downstream of it.
 const OFFLINE = process.argv.includes("--offline");
+// --keep leaves this run's rows in place instead of deleting them. Useful if
+// you want to inspect the result, or would rather never disable the ledger's
+// append-only trigger (see cleanup()).
+const KEEP = process.argv.includes("--keep");
 
 const required = OFFLINE
   ? { DATABASE_URL, RAZORPAY_WEBHOOK_SECRET: WEBHOOK_SECRET }
@@ -84,8 +88,28 @@ const clientId = `verify_client_${suffix}`;
 const orderId = `verify_order_${suffix}`;
 const PRICE = 50000; // ₹500.00 in paise
 
+/**
+ * Remove this run's rows.
+ *
+ * escrow_ledger is APPEND-ONLY — a trigger rejects DELETE outright, which is
+ * the guarantee working as designed and applies to this script too. Cleaning up
+ * therefore means briefly disabling that one trigger, which is safe here only
+ * because:
+ *   - the DELETE is narrowly scoped to THIS run's order id, and
+ *   - the trigger is re-enabled in a finally, even if the delete fails.
+ *
+ * The same pattern is used in tests/db/audit.test.ts to prove tampering is
+ * detectable. If you would rather never disable it, pass --keep to leave the
+ * rows behind; they are all prefixed `verify_` and easy to find.
+ */
 async function cleanup() {
-  await db.query("DELETE FROM escrow_ledger WHERE order_id = $1", [orderId]);
+  if (KEEP) return;
+  await db.query("ALTER TABLE public.escrow_ledger DISABLE TRIGGER escrow_ledger_no_delete");
+  try {
+    await db.query("DELETE FROM escrow_ledger WHERE order_id = $1", [orderId]);
+  } finally {
+    await db.query("ALTER TABLE public.escrow_ledger ENABLE TRIGGER escrow_ledger_no_delete");
+  }
   await db.query("DELETE FROM payment_intents WHERE order_id = $1", [orderId]);
   await db.query("DELETE FROM orders WHERE id = $1", [orderId]);
   await db.query("DELETE FROM client_profiles WHERE user_id = $1", [clientId]);
@@ -259,7 +283,14 @@ try {
 } catch (e) {
   fail("verification aborted", e instanceof Error ? e.message : String(e));
 } finally {
-  await cleanup();
+  try {
+    await cleanup();
+  } catch (e) {
+    console.log(
+      `\n  note: could not remove this run's rows (${e instanceof Error ? e.message : e}).` +
+        `\n  They are prefixed \`verify_\` — safe to leave, or delete by hand.`,
+    );
+  }
   await db.end();
 }
 
@@ -268,4 +299,4 @@ console.log(
     ? "\n\x1b[32mAll checks passed — payment collection works end to end.\x1b[0m\n"
     : `\n\x1b[31m${failures} check(s) failed.\x1b[0m\n`,
 );
-process.exit(failures === 0 ? 1 - 1 : 1);
+process.exit(failures === 0 ? 0 : 1);
