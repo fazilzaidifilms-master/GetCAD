@@ -38,6 +38,30 @@ export async function freshSchema(client: Client): Promise<void> {
   }
 }
 
+/**
+ * Give a user a payout account in a chosen state.
+ *
+ * Since 0023 a RELEASE leg requires a VERIFIED payout account for its payee,
+ * so any suite that releases escrow needs its designer/QC fixture to be
+ * payable. Inserted directly rather than through upsert_payout_account(),
+ * which needs an authenticated session for that specific user — this is
+ * fixture setup, not a test of the write path.
+ */
+export async function givePayoutAccount(
+  client: Client,
+  userId: string,
+  status: "PENDING_VERIFICATION" | "VERIFIED" | "REJECTED" = "VERIFIED",
+): Promise<void> {
+  await client.query(
+    `INSERT INTO payout_accounts
+       (user_id, beneficiary_name, pan, account_number, ifsc, account_type, status, rejection_reason)
+     VALUES ($1, 'Test Beneficiary', 'ABCDE1234F', '123456789012', 'HDFC0001234', 'SAVINGS', $2, $3)
+     ON CONFLICT (user_id) DO UPDATE
+       SET status = EXCLUDED.status, rejection_reason = EXCLUDED.rejection_reason`,
+    [userId, status, status === "REJECTED" ? "fixture rejection" : null],
+  );
+}
+
 /** Connect, apply a fresh schema, and hand back the client. */
 export async function connectFreshDb(): Promise<Client> {
   const client = new Client({ connectionString: TEST_DATABASE_URL });

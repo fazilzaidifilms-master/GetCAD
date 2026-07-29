@@ -2,7 +2,7 @@ import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { generateId } from "../../core/ids/generateId";
-import { connectFreshDb } from "../helpers/db";
+import { connectFreshDb, givePayoutAccount } from "../helpers/db";
 
 let db: Client;
 
@@ -22,6 +22,10 @@ beforeAll(async () => {
     "INSERT INTO client_profiles (id, user_id, legal_name, email) VALUES ($1,$2,'Acme','a@acme.example')",
     [generateId(), client],
   );
+  // Since 0023, release_escrow refuses to pay a payee with no verified payout
+  // account. These suites exercise the ledger, not the KYC gate.
+  await givePayoutAccount(db, designer);
+  await givePayoutAccount(db, qc);
 });
 
 afterAll(async () => {

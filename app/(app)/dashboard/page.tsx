@@ -1,8 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { TrustLine } from "@/components/trust-line";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
@@ -51,6 +52,14 @@ export default async function DashboardPage() {
     .select("id, kind, summary, order_id, read_at, created_at")
     .order("created_at", { ascending: false })
     .limit(20);
+
+  // Payout readiness, for the roles that actually get paid. Returns display
+  // fragments only — the raw table is unreadable by anyone (policies/0019).
+  const payable = me?.role === "DESIGNER" || me?.role === "QC";
+  const { data: payoutData } = payable
+    ? await supabase.rpc("my_payout_account")
+    : { data: null };
+  const payoutStatus = (payoutData as { status?: string } | null)?.status ?? null;
 
   const notifications = (notifData ?? []) as NotificationRow[];
   const unread = notifications.filter((n) => !n.read_at).length;
@@ -138,6 +147,38 @@ export default async function DashboardPage() {
           ))}
         </ul>
       </section>
+
+      {/* Only the roles that receive escrow releases. A payout account is now a
+          hard precondition for release_escrow (0023), so an unbanked designer
+          would otherwise discover the problem only when their money didn't
+          arrive. */}
+      {payable && (
+        <section className="mt-4 rounded-lg border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Payout account</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {payoutStatus === "VERIFIED"
+                  ? "Verified. Your earnings will be sent here."
+                  : payoutStatus === "PENDING_VERIFICATION"
+                    ? "Submitted — we're confirming it with our payment processor."
+                    : payoutStatus === "REJECTED"
+                      ? "We couldn't verify these details. Please update them."
+                      : "Add your bank details so we can pay you when an order closes."}
+              </p>
+            </div>
+            <Link
+              href="/settings/payouts"
+              className={buttonVariants({
+                variant: payoutStatus === "VERIFIED" ? "outline" : "default",
+                size: "sm",
+              })}
+            >
+              {payoutStatus ? "Manage" : "Add payout account"}
+            </Link>
+          </div>
+        </section>
+      )}
 
       <TrustLine className="mt-6" />
     </main>

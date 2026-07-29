@@ -2,7 +2,7 @@ import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { generateId } from "../../core/ids/generateId";
-import { connectFreshDb } from "../helpers/db";
+import { connectFreshDb, givePayoutAccount } from "../helpers/db";
 
 /**
  * Fund an order the way production now does: open a collection and confirm it
@@ -154,6 +154,9 @@ describe("Test U — escrow ledger + money conservation", () => {
     // Walk to CLOSED using a QC user for the QC-role steps.
     const qc = generateId();
     await db.query("INSERT INTO users (id, role, status) VALUES ($1,'QC','ACTIVE')", [qc]);
+    // Since 0023 both payees must be payable before escrow can be released.
+    await givePayoutAccount(db, designer);
+    await givePayoutAccount(db, qc);
     await fundOrder(db, id);
     await asUser(ops, () =>
       db.query("SELECT public.transition_order($1,'ASSIGNED'::order_status,$2::jsonb)", [
