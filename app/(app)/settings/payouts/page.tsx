@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { maskFromLast4 } from "@/core";
+import { formatMoney } from "@/lib/money";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 import {
   ACCOUNT_TYPE_LABELS,
@@ -13,6 +14,29 @@ import {
 import { PayoutAccountForm } from "./PayoutAccountForm";
 
 export const dynamic = "force-dynamic";
+
+interface PayoutRow {
+  order_id: string;
+  party: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+  paid_at: string | null;
+}
+
+/**
+ * Payee-facing wording. Deliberately not the raw state machine: "PROCESSING"
+ * means something precise to us and nothing reassuring to someone waiting for
+ * money.
+ */
+const PAYOUT_PROGRESS_LABELS: Record<string, string> = {
+  PENDING: "Queued",
+  PROCESSING: "On its way",
+  PAID: "Sent",
+  FAILED: "Couldn't be sent",
+  REVERSED: "Returned to us",
+};
 
 const STATUS_TONE: Record<PayoutAccountSummary["status"], "muted" | "outline"> = {
   PENDING_VERIFICATION: "outline",
@@ -34,8 +58,14 @@ export default async function PayoutSettingsPage() {
   // The raw table is unreadable by design (policies/0019). This function is the
   // only read path, and it returns display fragments — never the full account
   // number or PAN.
-  const { data, error } = await supabase.rpc("my_payout_account");
+  const [{ data, error }, { data: payoutData }] = await Promise.all([
+    supabase.rpc("my_payout_account"),
+    // Amounts and states only — my_payouts() deliberately returns no processor
+    // references and no destination account.
+    supabase.rpc("my_payouts", { p_limit: 20 }),
+  ]);
   const account = (data ?? null) as PayoutAccountSummary | null;
+  const payouts = (payoutData ?? []) as PayoutRow[];
 
   return (
     <main className="container max-w-2xl py-8">
@@ -112,6 +142,33 @@ export default async function PayoutSettingsPage() {
         </p>
         <PayoutAccountForm hasExisting={Boolean(account)} />
       </section>
+
+      {payouts.length > 0 && (
+        <section className="mt-6 rounded-lg border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-medium">Your payouts</p>
+          </div>
+          <ul className="divide-y divide-border">
+            {payouts.map((p, i) => (
+              <li key={`${p.order_id}-${i}`} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="tabular hidden font-mono text-xs text-muted-foreground sm:inline">
+                  {p.order_id.slice(0, 10)}…
+                </span>
+                <span className="tabular ml-auto font-mono font-medium">
+                  {formatMoney(p.amount, p.currency)}
+                </span>
+                <Badge variant={p.status === "PAID" ? "muted" : "outline"}>
+                  {PAYOUT_PROGRESS_LABELS[p.status] ?? p.status}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+          <p className="border-t border-border px-4 py-2.5 text-xs text-muted-foreground">
+            A payout is sent once an order closes and finance releases it. Settlement to your bank
+            usually takes a further working day or two.
+          </p>
+        </section>
+      )}
 
       <p className="mt-6 text-xs text-muted-foreground">
         We currently pay Indian bank accounts only. If you bank outside India, tell us — we&apos;ll

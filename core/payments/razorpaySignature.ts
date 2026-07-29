@@ -115,3 +115,76 @@ export function parseCapturedPayment(body: unknown): CapturedPayment | null {
 
   return { paymentId, razorpayOrderId, orderId, amount, currency };
 }
+
+/* ----------------------------------------------------------- transfers -- */
+
+export interface TransferEvent {
+  /** Razorpay's transfer id (`trf_…`) — recorded as processor_transfer_ref. */
+  transferId: string;
+  /**
+   * OUR payout idempotency key, round-tripped through the transfer's notes.
+   *
+   * This is what makes the webhook path safe. Matching on the transfer id alone
+   * would mean trusting Razorpay to tell us which of OUR obligations it settled;
+   * matching on our own key means a webhook can only ever resolve a payout we
+   * deliberately created.
+   */
+  payoutKey: string;
+  /** What we asked the processor to do with it. */
+  outcome: "PAID" | "FAILED" | "REVERSED";
+  amount: number;
+  currency: string;
+  /** Razorpay's own description of a failure, when it gives one. */
+  failureReason: string | null;
+}
+
+/** Razorpay transfer events we act on, mapped to our payout outcomes. */
+const TRANSFER_EVENTS: Record<string, TransferEvent["outcome"]> = {
+  "transfer.processed": "PAID",
+  "transfer.failed": "FAILED",
+  // A settled transfer that came back. Money-bearing in the opposite direction.
+  "transfer.reversed": "REVERSED",
+};
+
+/**
+ * Pull the fields we care about out of a transfer webhook.
+ *
+ * Returns null for anything we do not act on or cannot act on safely. In
+ * particular a transfer with no `notes.payout_key` is IGNORED rather than
+ * guessed at: a transfer we cannot tie to one of our own payout rows is not
+ * something to resolve by matching on amount.
+ */
+export function parseTransferEvent(body: unknown): TransferEvent | null {
+  if (typeof body !== "object" || body === null) return null;
+  const evt = body as Record<string, unknown>;
+  const event = typeof evt.event === "string" ? evt.event : null;
+  if (!event) return null;
+
+  const outcome = TRANSFER_EVENTS[event];
+  if (!outcome) return null;
+
+  const transfer = (evt.payload as Record<string, unknown> | undefined)?.transfer as
+    | Record<string, unknown>
+    | undefined;
+  const entity = transfer?.entity as Record<string, unknown> | undefined;
+  if (!entity) return null;
+
+  const transferId = typeof entity.id === "string" ? entity.id : null;
+  const amount = typeof entity.amount === "number" ? entity.amount : null;
+  const currency = typeof entity.currency === "string" ? entity.currency : null;
+  const notes = entity.notes as Record<string, unknown> | undefined;
+  const payoutKey = typeof notes?.payout_key === "string" ? notes.payout_key : null;
+
+  const error = entity.error as Record<string, unknown> | undefined;
+  const failureReason =
+    typeof error?.description === "string"
+      ? error.description
+      : typeof entity.failure_reason === "string"
+        ? entity.failure_reason
+        : null;
+
+  if (!transferId || !payoutKey || amount === null || !currency) return null;
+  if (!Number.isInteger(amount) || amount <= 0) return null;
+
+  return { transferId, payoutKey, outcome, amount, currency, failureReason };
+}
