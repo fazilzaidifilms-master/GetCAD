@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Imported directly, not via the @/core barrel: this module uses node:crypto,
 // which the Edge-runtime middleware bundle cannot contain.
-import { parseCapturedPayment, verifyWebhookSignature } from "@/core/payments/razorpaySignature";
+import {
+  parseCapturedPayment,
+  parseTransferEvent,
+  verifyWebhookSignature,
+} from "@/core/payments/razorpaySignature";
 import { readRazorpayConfig } from "@/config/payments";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -93,6 +97,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await admin.rpc("fail_payment_intent", { p_external_ref: entity.order_id });
     }
     return NextResponse.json({ ok: true });
+  }
+
+  // Transfer events: the authoritative word on whether a designer was paid.
+  // The API call that created the transfer only told us it was ACCEPTED.
+  const transfer = parseTransferEvent(body);
+  if (transfer) {
+    const { error, data } = await admin.rpc("record_payout_result", {
+      // Our own key, round-tripped through the transfer's notes — a transfer we
+      // did not create cannot resolve a payout we did.
+      p_idempotency_key: transfer.payoutKey,
+      p_status: transfer.outcome,
+      p_transfer_ref: transfer.transferId,
+      p_failure_reason:
+        transfer.outcome === "PAID"
+          ? null
+          : (transfer.failureReason ?? `transfer ${transfer.outcome.toLowerCase()} at the processor`),
+    });
+
+    if (error) {
+      // Same reasoning as payment.captured: we cannot tell a genuine mismatch
+      // from a transient DB error here, so 500 and let the retry be made safe
+      // by record_payout_result's own idempotency.
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, ...(data as object) });
   }
 
   // Signed but not an event we handle. Acknowledge so Razorpay stops retrying.

@@ -2,7 +2,7 @@ import type { Client } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { generateId } from "../../core/ids/generateId";
-import { connectFreshDb } from "../helpers/db";
+import { connectFreshDb, givePayoutAccount } from "../helpers/db";
 
 let db: Client;
 
@@ -195,6 +195,10 @@ describe("Test AS — independent QC is enforced, recorded, and payable", () => 
 describe("Test AS2 — the QC payout now has a payee", () => {
   async function fundedOrderReadyToRelease(withReviewer: boolean): Promise<string> {
     const id = generateId();
+    // Since 0023 a payout leg also needs a payable payee. These tests are about
+    // WHO is attributed, not whether they have banked with us.
+    await givePayoutAccount(db, designer);
+    await givePayoutAccount(db, qc);
     await db.query(
       `INSERT INTO orders (id, client_id, designer_id, product_type, status, currency,
          price_total, designer_payout, qc_payout, platform_commission, qc_reviewer_id)

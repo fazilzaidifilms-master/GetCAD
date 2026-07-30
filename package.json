@@ -16,7 +16,8 @@
     "ci": "npm run typecheck && npm run lint && npm run test && npm run secret-scan",
     "db:status": "node scripts/apply-migrations.mjs --status",
     "db:baseline": "node scripts/apply-migrations.mjs --baseline",
-    "verify:payment": "node scripts/verify-payment.mjs"
+    "verify:payment": "node scripts/verify-payment.mjs",
+    "payouts:link": "node scripts/link-payout-account.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.5",

@@ -41,6 +41,29 @@ export type {
 } from "./files/sanitizationGate";
 export { escrowSign, netHeld, ESCROW_KINDS } from "./money/escrowSign";
 export type { EscrowKind } from "./money/escrowSign";
+export {
+  validateBankAccount,
+  normalizePan,
+  normalizeIfsc,
+  normalizeAccountNumber,
+  isValidPan,
+  isValidIfsc,
+  isValidAccountNumber,
+  panHolderType,
+  maskAccountNumber,
+  maskFromLast4,
+  maskPan,
+  ACCOUNT_TYPES,
+  PAN_PATTERN,
+  IFSC_PATTERN,
+  ACCOUNT_NUMBER_PATTERN,
+} from "./payouts/bankAccountIn";
+export type {
+  AccountType,
+  BankAccountInput,
+  BankAccountErrors,
+  NormalizedBankAccount,
+} from "./payouts/bankAccountIn";
 // NOT re-exported here on purpose: core/payments/razorpaySignature imports
 // node:crypto, and middleware.ts imports this barrel while running on the EDGE
 // runtime, which has no node builtins. Pulling it in here breaks the build.

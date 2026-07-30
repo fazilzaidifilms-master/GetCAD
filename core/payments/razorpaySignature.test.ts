@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseCapturedPayment,
+  parseTransferEvent,
   verifyCheckoutSignature,
   verifyWebhookSignature,
 } from "./razorpaySignature";
@@ -122,6 +123,91 @@ describe("Test AU3 — parsing a captured payment", () => {
   it("survives junk input without throwing", () => {
     for (const junk of [null, undefined, "", 42, [], { event: "payment.captured" }]) {
       expect(parseCapturedPayment(junk)).toBeNull();
+    }
+  });
+});
+
+/**
+ * Test AZ — transfer webhooks, the authoritative word on whether a designer
+ * was actually paid.
+ *
+ * The parser is the boundary between attacker-shaped JSON and a function that
+ * moves money in our ledger, so the rule it enforces matters more than the
+ * fields it extracts: a transfer carrying no payout key of OURS is ignored
+ * outright rather than matched by amount.
+ */
+function transferEvent(
+  event = "transfer.processed",
+  entity: Record<string, unknown> = {},
+): unknown {
+  return {
+    event,
+    payload: {
+      transfer: {
+        entity: {
+          id: "trf_ABC123",
+          amount: 600,
+          currency: "INR",
+          status: "processed",
+          notes: { payout_key: "payout:leg-1" },
+          ...entity,
+        },
+      },
+    },
+  };
+}
+
+describe("Test AZ — transfer event parsing", () => {
+  it("maps each transfer event to the outcome we record", () => {
+    expect(parseTransferEvent(transferEvent("transfer.processed"))?.outcome).toBe("PAID");
+    expect(parseTransferEvent(transferEvent("transfer.failed"))?.outcome).toBe("FAILED");
+    expect(parseTransferEvent(transferEvent("transfer.reversed"))?.outcome).toBe("REVERSED");
+  });
+
+  it("extracts the transfer id and OUR payout key", () => {
+    expect(parseTransferEvent(transferEvent())).toEqual({
+      transferId: "trf_ABC123",
+      payoutKey: "payout:leg-1",
+      outcome: "PAID",
+      amount: 600,
+      currency: "INR",
+      failureReason: null,
+    });
+  });
+
+  it("IGNORES a transfer with no payout key of ours", () => {
+    // This is the important one. A transfer we did not create must never be
+    // able to resolve a payout we did — and matching on amount would let it.
+    expect(parseTransferEvent(transferEvent("transfer.processed", { notes: {} }))).toBeNull();
+    expect(
+      parseTransferEvent(transferEvent("transfer.processed", { notes: undefined })),
+    ).toBeNull();
+    expect(
+      parseTransferEvent(transferEvent("transfer.processed", { notes: { payout_key: 42 } })),
+    ).toBeNull();
+  });
+
+  it("carries the processor's failure description through when there is one", () => {
+    const parsed = parseTransferEvent(
+      transferEvent("transfer.failed", { error: { description: "beneficiary name mismatch" } }),
+    );
+    expect(parsed?.failureReason).toBe("beneficiary name mismatch");
+  });
+
+  it("ignores events we do not act on", () => {
+    expect(parseTransferEvent(transferEvent("transfer.created"))).toBeNull();
+    expect(parseTransferEvent({ event: "payment.captured", payload: {} })).toBeNull();
+  });
+
+  it("rejects a non-integer, zero or negative amount", () => {
+    for (const amount of [0, -1, 12.5, "600"]) {
+      expect(parseTransferEvent(transferEvent("transfer.processed", { amount }))).toBeNull();
+    }
+  });
+
+  it("survives junk input without throwing", () => {
+    for (const junk of [null, undefined, "", 42, [], { event: "transfer.processed" }]) {
+      expect(parseTransferEvent(junk)).toBeNull();
     }
   });
 });

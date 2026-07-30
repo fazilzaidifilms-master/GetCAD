@@ -18,6 +18,7 @@ import {
 import { uploadFileAction } from "./fileActions";
 import { PayButton } from "./PayButton";
 import { OrderTimeline } from "./OrderTimeline";
+import { PayoutPanel, type PayoutStateSummary } from "./PayoutPanel";
 import type { DisputeRow, MessageRow, OrderRow, VersionRow } from "./types";
 
 const HIDDEN_TARGETS = new Set(["QUOTED", "PAYMENT_HELD", "PAYOUT_RELEASED", "REFUNDED", "DISPUTED"]);
@@ -51,6 +52,7 @@ export function OrderDetail({
   messages,
   openDispute,
   held,
+  payoutState,
   timelineRows,
   timelineError,
 }: {
@@ -62,6 +64,7 @@ export function OrderDetail({
   messages: MessageRow[];
   openDispute?: DisputeRow;
   held: number;
+  payoutState?: PayoutStateSummary | null;
   timelineRows: TimelineRawRow[];
   timelineError?: string | null;
 }) {
@@ -263,6 +266,14 @@ export function OrderDetail({
               </form>
             )}
           </div>
+        </Panel>
+      )}
+
+      {/* Payouts — FINANCE only. Released money is an OBLIGATION; this is the
+          only view of whether it actually reached the people owed it. */}
+      {role === "FINANCE" && payoutState && payoutState.owed > 0 && (
+        <Panel title="Payouts">
+          <PayoutPanel orderId={o.id} currency={o.currency} state={payoutState} />
         </Panel>
       )}
 

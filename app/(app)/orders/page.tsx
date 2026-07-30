@@ -8,11 +8,13 @@ import { StatusBadge } from "@/components/status-badge";
 import { TrustLine } from "@/components/trust-line";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/money";
 
 import { createOrderAction } from "./actions";
 import { OrderDetail } from "./OrderDetail";
+import type { PayoutStateSummary } from "./PayoutPanel";
 import type { DisputeRow, LedgerRow, MessageRow, OrderRow, VersionRow } from "./types";
 
 export const dynamic = "force-dynamic";
@@ -97,6 +99,17 @@ export default async function OrdersPage({
       : { data: [], error: null };
     const timelineRows = timelineRes.data ?? [];
     const timelineError = timelineRes.error?.message ?? null;
+
+    // Payout execution state is service-role only (0024): the rows carry
+    // processor references that no browser session may read. FINANCE is the
+    // only role that acts on them, so it is the only role we fetch them for.
+    let payoutState: PayoutStateSummary | null = null;
+    if (order && role === "FINANCE") {
+      const { data } = await createAdminSupabaseClient().rpc("payout_state", {
+        p_order_id: order.id,
+      });
+      payoutState = (data as PayoutStateSummary | null) ?? null;
+    }
     return (
       <main className="container max-w-3xl py-8">
         <Link
@@ -130,6 +143,7 @@ export default async function OrdersPage({
                 messages={messages.filter((m) => m.order_id === order.id)}
                 openDispute={disputes.find((d) => d.order_id === order.id && d.status === "OPEN")}
                 held={heldFor(order.id)}
+                payoutState={payoutState}
                 timelineRows={timelineRows}
                 timelineError={timelineError}
               />
