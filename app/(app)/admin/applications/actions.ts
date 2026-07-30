@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { flushEmailsBestEffort } from "@/lib/email/dispatch";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 export type ReviewResult = { ok: true } | { ok: false; error: string };
@@ -27,6 +28,10 @@ export async function reviewApplicationAction(formData: FormData): Promise<Revie
     p_notes: notes.trim() || null,
   });
   if (error) return { ok: false, error: error.message };
+
+  // An accept/reject enqueued a decision email in the same transaction; send it
+  // now, best-effort. Never blocks or fails the review.
+  await flushEmailsBestEffort();
 
   revalidatePath("/admin/applications");
   return { ok: true };
