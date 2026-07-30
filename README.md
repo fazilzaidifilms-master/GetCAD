@@ -40,9 +40,28 @@ npm run db:apply     # apply db/migrations + db/policies to $DATABASE_URL
 
 ## Running the database tests locally
 
-The schema/RLS tests (B, C, D) need a Postgres. Point `DATABASE_URL` at any
-Postgres 16 and run `npm run test`. CI spins up a throwaway `postgres:16`
-service automatically.
+The schema/RLS/money tests need a Postgres on `127.0.0.1:5433`. A disposable one
+is committed as `docker-compose.yml`, so the whole thing is one command:
+
+```bash
+npm run test:local     # starts the throwaway Postgres, then runs every test
+```
+
+Or drive it in two steps:
+
+```bash
+npm run test:db:up     # start the throwaway postgres:16 (port 5433)
+npm run test           # run the suite
+npm run test:db:down   # stop it when you're done
+```
+
+Each run drops and rebuilds the schema, so the container holds nothing worth
+keeping. CI uses the same `postgres:16` image, so local and CI agree.
+
+> **Never** set `DATABASE_URL` to a real database to run the tests — the harness
+> does `DROP SCHEMA public CASCADE` on whatever it connects to. It is only ever
+> meant to hit the disposable local Postgres above. (`npm run db:apply` is the
+> opposite and is safe: it only *adds* migrations to `$DATABASE_URL`.)
 
 ## Black-box tests (A–E)
 

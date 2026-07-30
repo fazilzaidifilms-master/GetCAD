@@ -1,0 +1,33 @@
+# Throwaway Postgres for the database tests.
+#
+# The schema/RLS/money tests default to postgres://postgres@127.0.0.1:5433
+# (see tests/helpers/db.ts). Nothing in the repo started that database, so a
+# fresh clone runs `npm run test` and every DB suite fails its beforeAll with
+# ECONNREFUSED — 226 skipped tests that look alarming and are just a missing
+# server. This file is that server, so "start the test DB" is one command.
+#
+# It is DISPOSABLE. Each test run drops and rebuilds the schema, so this holds
+# no state worth keeping — never point it at anything real, and never point the
+# tests at a real database (they DROP SCHEMA public CASCADE on connect).
+#
+# Matches the postgres:16 image and trust auth CI uses, so local == CI.
+services:
+  test-db:
+    image: postgres:16
+    container_name: getcad-test-db
+    # Host 5433 -> container 5432, so it does not collide with a real local
+    # Postgres on 5432, and matches the tests' default connection string.
+    ports:
+      - "5433:5432"
+    environment:
+      # No password: this is a local, disposable, test-only database. Trust auth
+      # matches the passwordless default connection string the tests use.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    # Keep it out of any persistent volume — it is meant to be ephemeral.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
