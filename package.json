@@ -21,7 +21,8 @@
     "db:baseline": "node scripts/apply-migrations.mjs --baseline",
     "verify:payment": "node scripts/verify-payment.mjs",
     "verify:payout": "node scripts/verify-payout.mjs",
-    "payouts:link": "node scripts/link-payout-account.mjs"
+    "payouts:link": "node scripts/link-payout-account.mjs",
+    "send-emails": "npx tsx scripts/send-emails.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.5",
