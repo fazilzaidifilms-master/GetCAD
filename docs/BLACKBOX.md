@@ -1193,10 +1193,10 @@ is the HMAC, not a session.
 5. Confirm in the DB: one `escrow_ledger` HOLD row carrying `external_ref =
    pay_…`, and the matching `payment_intents` row `CONFIRMED`.
 
-> **Not yet built:** designer payouts. Razorpay Route needs linked accounts with
-> KYC (PAN, bank + IFSC), and `designer_profiles.payout_details` is still a
-> single unstructured column. That is the next slice; until it lands,
-> `release_escrow` records the payout in the ledger but no money leaves.
+> **Payouts are now built** (structured payout accounts with PAN/bank/IFSC, a
+> `payouts` table, and Razorpay Route transfers). `release_escrow` records the
+> obligation; the payout worker sends it. The one seam still unverified against
+> the live API is creating a Route linked account — see `verify:payout` below.
 
 ### AU9 — Scripted end-to-end verification (`npm run verify:payment`)
 
@@ -1225,3 +1225,35 @@ from "my webhook is broken".
 The one thing it does not cover is typing a card into Razorpay's own checkout
 UI — everything after "Razorpay captured a payment", which is where all of our
 logic lives, is covered.
+
+### AU10 — Scripted end-to-end verification of payouts (`npm run verify:payout`)
+
+The money-OUT mirror of AU9. It drives a real order through the whole payout
+machine against your database and asserts each step.
+
+```bash
+# Offline — needs only DATABASE_URL, no dev server, no secrets:
+export DATABASE_URL="<your supabase pooler string>"
+npm run verify:payout -- --offline
+
+# Online — also exercises the real webhook route + signature check:
+npm run dev                 # in one terminal
+npm run verify:payout       # in another (needs RAZORPAY_WEBHOOK_SECRET)
+```
+
+It seeds a CLOSED, funded order with a payable designer and QC, then: releases
+escrow and asserts the obligations land as ledger legs, opens payout
+instructions (designer + QC; platform gets none), claims the batch, settles the
+designer's payout the way the processor's `transfer.processed` webhook would and
+asserts it reaches `PAID` with the transfer reference recorded, redelivers the
+same settlement and asserts it is not paid twice, then delivers a
+`transfer.reversed` and asserts the money returns to escrow. It re-verifies the
+audit chain and cleans up after itself, pass or fail.
+
+`--offline` settles straight through the DB functions (no dev server, no
+secrets); online mode posts genuinely signed transfer webhooks at `APP_URL`, so
+it also proves the route rejects a bad signature.
+
+The one thing it does **not** cover is creating a real Razorpay Route transfer,
+which needs a Route linked account — the single seam with no egress from CI.
+Everything after "the processor moved the money" is covered.
