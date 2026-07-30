@@ -80,10 +80,12 @@ add one for production:
 
 - **URL:** `https://yourdomain.com/api/webhooks/razorpay`
 - **Secret:** the same value you put in `RAZORPAY_WEBHOOK_SECRET`
-- **Active events:** `payment.captured`, `payment.failed`
+- **Active events:** `payment.captured`, `payment.failed`, `transfer.processed`,
+  `transfer.failed`, `transfer.reversed`
 
-This is the point of deploying: the URL stops changing every time a Codespace
-restarts.
+The `payment.*` events fund escrow; the `transfer.*` events confirm designer
+payouts (PAID / REVERSED). This is the point of deploying: the URL stops
+changing every time a Codespace restarts.
 
 ## 5. Verify the deployment
 
@@ -119,12 +121,18 @@ Database migrations do **not** roll back — there are no down-migrations. Treat
 schema changes as forward-only and test them against a throwaway Postgres
 (`npm test` does exactly that) before applying to production.
 
+For the full go-live sequence (accounts, email, payouts, verification, first-week
+cadence), follow [LAUNCH.md](./LAUNCH.md).
+
 ## What is still missing at launch
 
-- **Designer payouts.** Money can come in; nothing goes out yet. Do not onboard
-  a designer expecting payment until that ships.
-- **Transactional email.** Applications and leads land in the database silently.
-  Watch the `designer_applications` and `marketing_leads` tables until email
-  exists.
 - **Counsel-reviewed Terms.** The privacy page is an accurate plain-language
-  description; Terms governing real transactions is not written.
+  description and says so; Terms governing real money between strangers is not
+  written. This is the one launch blocker that isn't code.
+- **One live-verified payout.** Designer payouts are built and tested, but
+  creating a real Razorpay Route linked account is the single seam with no
+  automated coverage — do the `payouts:link` + `verify:payout` step in LAUNCH.md
+  Phase 5 before onboarding a designer who expects to be paid.
+
+> Payouts and transactional email, previously listed here as missing, now exist
+> (migrations 0023–0027).

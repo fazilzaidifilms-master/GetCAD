@@ -59,7 +59,12 @@ if (!DATABASE_URL) {
 
 const db = new pg.Client({
   connectionString: DATABASE_URL,
-  ssl: DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false },
+  // Local Postgres (localhost / 127.0.0.1 / ::1) speaks no SSL; a hosted DB
+  // (Supabase) requires it. Matching only "localhost" wrongly forced SSL on a
+  // 127.0.0.1 string and failed to connect.
+  ssl: /(?:localhost|127\.0\.0\.1|\[?::1\]?)/.test(DATABASE_URL)
+    ? undefined
+    : { rejectUnauthorized: false },
 });
 
 /** Digits only; Razorpay rejects formatted numbers. */
