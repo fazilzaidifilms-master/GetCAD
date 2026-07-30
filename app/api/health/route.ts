@@ -20,10 +20,15 @@ const GROUPS: Record<string, readonly string[]> = {
   database: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
   storage: ["SUPABASE_SERVICE_ROLE_KEY"],
   payments: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"],
+  email: ["RESEND_API_KEY", "EMAIL_FROM"],
   seo: ["NEXT_PUBLIC_SITE_URL"],
 };
 
-/** Groups without which the platform cannot do its job. `seo` is cosmetic. */
+/**
+ * Groups without which the platform cannot do its job. `seo` is cosmetic, and
+ * `email` is deliberately optional — the outbox holds acknowledgements until a
+ * provider is configured, so an unconfigured mailer degrades rather than breaks.
+ */
 const REQUIRED = ["auth", "database", "storage", "payments"] as const;
 
 export function GET(): NextResponse {

@@ -36,6 +36,7 @@ npm run test         # vitest: boundary + schema/RLS tests
 npm run secret-scan  # scan tracked files for committed secrets
 npm run ci           # typecheck -> lint -> test -> secret-scan (what CI runs)
 npm run db:apply     # apply db/migrations + db/policies to $DATABASE_URL
+npm run send-emails  # drain the email outbox (retries; also runs inline)
 ```
 
 ## Running the database tests locally
