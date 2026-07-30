@@ -22,6 +22,15 @@ const SECTIONS: { heading: string; body: string[] }[] = [
       "If you apply as a CAD designer, we store your name, email address, phone number, country, years of experience, primary software, the jewelry categories you work in, and either a portfolio link or the portfolio files you upload.",
       "If you hold an account, we store an account identifier from our authentication provider, your role, and your account status. Your name and email are held separately from your orders.",
       "When an order is placed, we store the order's details, its status history, the files exchanged, and the messages sent within it.",
+      "If you are paid through the platform — as a designer or a quality reviewer — we store the bank details needed to send that money: the account holder's name, the account number, the IFSC, the account type, and the PAN our payment processor requires to make a payout to an Indian bank account.",
+    ],
+  },
+  {
+    heading: "How your bank details are held",
+    body: [
+      "They are kept apart from everything else and are readable by no one through the ordinary application — including you. When you look at your payout settings you are shown only the last four characters of your account number and PAN, which is enough to recognise the account without exposing it.",
+      "They are never visible to clients, are not attached to your order history, and are never written into our activity records — those log only that an account was submitted, along with the last four digits.",
+      "Changing your bank details always sends them for verification again. We will not pay out to details that have not been confirmed.",
     ],
   },
   {
