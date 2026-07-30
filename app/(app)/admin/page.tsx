@@ -104,6 +104,25 @@ export default async function AdminPage() {
         </Link>
       </div>
 
+      {/* Recruiting/sales inboxes — OPS and SALES only, matching the DB gate on
+          list_designer_applications / list_marketing_leads. */}
+      {(role === "OPS" || role === "SALES") && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/applications"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+          >
+            Designer applications →
+          </Link>
+          <Link
+            href="/admin/leads"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+          >
+            Contact leads →
+          </Link>
+        </div>
+      )}
+
       {inQcReview && (
         <div className="mt-4 rounded-md border border-border bg-subtle px-4 py-3 text-sm">
           <p className="font-medium">Independent QC review</p>
