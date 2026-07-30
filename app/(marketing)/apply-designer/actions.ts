@@ -3,6 +3,7 @@
 import { generateId, sanitizeUpload } from "@/core";
 import { DESIGNER_APPLICATION_FILES_BUCKET } from "@/config/supabase";
 import { DESIGNER_APPLICATION_LIMIT, checkRateLimit } from "@/lib/rateLimit";
+import { flushEmailsBestEffort } from "@/lib/email/dispatch";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 import { designerApplicationFieldsSchema, portfolioFilesError } from "@/lib/validation/designerApplication";
@@ -112,6 +113,9 @@ export async function submitDesignerApplicationAction(
       return { ok: false, error: error.message };
     }
 
+    // The DB enqueued a "we received your application" email in the same
+    // transaction; send it now, best-effort. Never blocks or fails the submit.
+    await flushEmailsBestEffort();
     return { ok: true };
   } catch {
     if (uploadedKeys.length > 0) {

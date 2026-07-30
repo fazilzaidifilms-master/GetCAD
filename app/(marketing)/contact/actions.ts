@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { flushEmailsBestEffort } from "@/lib/email/dispatch";
 import { CONTACT_LIMIT, checkRateLimit } from "@/lib/rateLimit";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
@@ -33,6 +34,11 @@ export async function submitLeadAction(formData: FormData): Promise<void> {
     p_role: role,
   });
   if (error) throw new Error(error.message);
+
+  // The DB enqueued a "we received your message" email in the same
+  // transaction; send it now, best-effort. Must run before redirect(), which
+  // throws internally to perform the navigation.
+  await flushEmailsBestEffort();
 
   redirect("/contact?submitted=1");
 }
