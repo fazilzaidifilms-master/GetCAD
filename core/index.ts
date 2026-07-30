@@ -64,6 +64,8 @@ export type {
   BankAccountErrors,
   NormalizedBankAccount,
 } from "./payouts/bankAccountIn";
+export { renderEmail, isEmailTemplate, EMAIL_TEMPLATES } from "./email/templates";
+export type { EmailTemplate, EmailPayloads, RenderedEmail } from "./email/templates";
 // NOT re-exported here on purpose: core/payments/razorpaySignature imports
 // node:crypto, and middleware.ts imports this barrel while running on the EDGE
 // runtime, which has no node builtins. Pulling it in here breaks the build.
