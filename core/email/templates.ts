@@ -15,14 +15,27 @@
  * text/plain fallback is what keeps a transactional email out of spam.
  */
 
-export const EMAIL_TEMPLATES = ["DESIGNER_APPLICATION_RECEIVED", "CONTACT_RECEIVED"] as const;
+export const EMAIL_TEMPLATES = [
+  "DESIGNER_APPLICATION_RECEIVED",
+  "CONTACT_RECEIVED",
+  "DESIGNER_APPLICATION_ACCEPTED",
+  "DESIGNER_APPLICATION_REJECTED",
+  "PAYOUT_SENT",
+] as const;
 export type EmailTemplate = (typeof EMAIL_TEMPLATES)[number];
 
 /** The exact payload each template accepts. The renderer will not build one it
- *  has no type for, so a template can never read a field it was not handed. */
+ *  has no type for, so a template can never read a field it was not handed.
+ *  Every payload here is about the RECIPIENT'S OWN thing — an application they
+ *  filed, a payout owed to them — so none can carry a counterparty identity. */
 export interface EmailPayloads {
   DESIGNER_APPLICATION_RECEIVED: { full_name?: string };
   CONTACT_RECEIVED: { name?: string };
+  DESIGNER_APPLICATION_ACCEPTED: { full_name?: string };
+  DESIGNER_APPLICATION_REJECTED: { full_name?: string };
+  // A payout is the payee's own money for their own order. No client, no
+  // designer-on-the-other-side — order_ref is an opaque id they already see.
+  PAYOUT_SENT: { amount_minor?: number; currency?: string; order_ref?: string };
 }
 
 export interface RenderedEmail {
@@ -39,6 +52,20 @@ function firstName(raw: string | undefined): string {
   const cleaned = (raw ?? "").replace(/\s+/g, " ").trim();
   if (!cleaned) return "there";
   return cleaned.split(" ")[0] ?? "there";
+}
+
+/**
+ * Format integer minor units for display. Mirrors lib/money's intent but stays
+ * framework-free here so templates need no import: paise/cents → a major-unit
+ * string with the currency's symbol, falling back to the ISO code.
+ */
+const CURRENCY_SYMBOL: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+function formatMinor(amountMinor: number | undefined, currency: string | undefined): string {
+  const code = (currency ?? "INR").toUpperCase();
+  const symbol = CURRENCY_SYMBOL[code] ?? "";
+  const major = (Number.isFinite(amountMinor) ? (amountMinor as number) : 0) / 100;
+  const shown = major.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return symbol ? `${symbol}${shown}` : `${shown} ${code}`;
 }
 
 /** Minimal HTML escape — payloads are user-supplied names. */
@@ -84,6 +111,39 @@ function contactReceived(p: EmailPayloads["CONTACT_RECEIVED"]): RenderedEmail {
   return { subject: `We've received your message — ${PRODUCT}`, text, html };
 }
 
+function designerApplicationAccepted(p: EmailPayloads["DESIGNER_APPLICATION_ACCEPTED"]): RenderedEmail {
+  const name = firstName(p.full_name);
+  const { text, html } = layout([
+    `Hi ${esc(name)},`,
+    `Good news — we'd like to move forward with your application to design with ${esc(PRODUCT)}.`,
+    `The next step is a short paid test order, so we can see how you work before you're matched with a client. We'll follow up from this address with the details and how to set up your account.`,
+    `No action is needed right now — just keep an eye on your inbox. If you have questions in the meantime, reply here.`,
+  ]);
+  return { subject: `Your application to ${PRODUCT} — next steps`, text, html };
+}
+
+function designerApplicationRejected(p: EmailPayloads["DESIGNER_APPLICATION_REJECTED"]): RenderedEmail {
+  const name = firstName(p.full_name);
+  const { text, html } = layout([
+    `Hi ${esc(name)},`,
+    `Thank you for your interest in designing with ${esc(PRODUCT)}, and for the time you put into applying.`,
+    `After reviewing your application, we're not able to move forward right now. This isn't a judgement of your work — we onboard a small number of designers at a time and can't take everyone on.`,
+    `You're welcome to apply again in the future. We wish you the best with your work.`,
+  ]);
+  return { subject: `An update on your application to ${PRODUCT}`, text, html };
+}
+
+function payoutSent(p: EmailPayloads["PAYOUT_SENT"]): RenderedEmail {
+  const amount = formatMinor(p.amount_minor, p.currency);
+  const ref = p.order_ref ? ` for order ${esc(p.order_ref)}` : "";
+  const { text, html } = layout([
+    `Hi there,`,
+    `A payout of ${amount}${ref} is on its way to your bank account.`,
+    `Settlement to your bank usually takes a further working day or two. You can see the status of your payouts any time on your payout settings page.`,
+  ]);
+  return { subject: `A payout of ${amount} is on its way — ${PRODUCT}`, text, html };
+}
+
 /**
  * Render a template with its payload. Throws on an unknown template rather than
  * sending a blank email — a template the DB allows but the renderer doesn't
@@ -98,6 +158,12 @@ export function renderEmail<T extends EmailTemplate>(
       return designerApplicationReceived(payload as EmailPayloads["DESIGNER_APPLICATION_RECEIVED"]);
     case "CONTACT_RECEIVED":
       return contactReceived(payload as EmailPayloads["CONTACT_RECEIVED"]);
+    case "DESIGNER_APPLICATION_ACCEPTED":
+      return designerApplicationAccepted(payload as EmailPayloads["DESIGNER_APPLICATION_ACCEPTED"]);
+    case "DESIGNER_APPLICATION_REJECTED":
+      return designerApplicationRejected(payload as EmailPayloads["DESIGNER_APPLICATION_REJECTED"]);
+    case "PAYOUT_SENT":
+      return payoutSent(payload as EmailPayloads["PAYOUT_SENT"]);
     default:
       throw new Error(`unknown email template: ${String(template)}`);
   }

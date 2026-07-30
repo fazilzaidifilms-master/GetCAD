@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { flushEmailsBestEffort } from "@/lib/email/dispatch";
 import { listTransfers, sendTransfer } from "@/lib/razorpay/transfers";
 
 /**
@@ -131,6 +132,9 @@ export async function executePayouts(limit = 10): Promise<ExecutionOutcome[]> {
     }
   }
 
+  // A PAID result enqueues a "your payout is on its way" email transactionally;
+  // send anything queued now, best-effort. Never affects the payout run.
+  await flushEmailsBestEffort();
   return outcomes;
 }
 
@@ -239,5 +243,7 @@ export async function reconcilePayouts(olderThanMinutes = 15): Promise<Execution
     }
   }
 
+  // Reconciling a payout to PAID also enqueues its email; drain best-effort.
+  await flushEmailsBestEffort();
   return outcomes;
 }

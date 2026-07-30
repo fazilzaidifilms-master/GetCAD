@@ -8,6 +8,7 @@ import {
   verifyWebhookSignature,
 } from "@/core/payments/razorpaySignature";
 import { readRazorpayConfig } from "@/config/payments";
+import { flushEmailsBestEffort } from "@/lib/email/dispatch";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 /**
@@ -121,6 +122,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // by record_payout_result's own idempotency.
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+    // A PAID result enqueued a "your payout is on its way" email in the same
+    // transaction; send it now, best-effort. Never affects the 200 we owe
+    // Razorpay — a failed flush leaves the mail queued for the next drain.
+    await flushEmailsBestEffort();
     return NextResponse.json({ ok: true, ...(data as object) });
   }
 

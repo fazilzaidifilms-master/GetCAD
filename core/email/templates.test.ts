@@ -71,3 +71,42 @@ describe("Test BA4 — template guard", () => {
     for (const bad of ["", "nope", 42, null, undefined, {}]) expect(isEmailTemplate(bad)).toBe(false);
   });
 });
+
+describe("Test BA5 — application decision emails", () => {
+  it("accepts warmly and points at the paid test order, without over-promising", () => {
+    const r = renderEmail("DESIGNER_APPLICATION_ACCEPTED", { full_name: "Dana Designer" });
+    expect(r.subject).toMatch(/next steps/i);
+    expect(r.text).toContain("Hi Dana,");
+    expect(r.text).toMatch(/test order/i);
+    expect(r.text).not.toMatch(/\bguarantee\b|\bwithin 24\b/i);
+  });
+
+  it("declines kindly and leaves the door open, without a reason that could sting", () => {
+    const r = renderEmail("DESIGNER_APPLICATION_REJECTED", { full_name: "Sam" });
+    expect(r.text).toContain("Hi Sam,");
+    expect(r.text).toMatch(/not able to move forward|not a judgement/i);
+    expect(r.text).toMatch(/apply again/i);
+  });
+});
+
+describe("Test BA6 — payout sent email", () => {
+  it("formats the amount in the payout currency and names no counterparty", () => {
+    const r = renderEmail("PAYOUT_SENT", { amount_minor: 3000000, currency: "INR", order_ref: "ord_abc123" });
+    expect(r.subject).toContain("₹30,000.00");
+    expect(r.text).toContain("₹30,000.00");
+    expect(r.text).toContain("ord_abc123");
+    // The payee's own money for their own order — there is no client to name.
+    expect(r.text).not.toMatch(/client|customer/i);
+  });
+
+  it("falls back to a bare greeting and a code for an unknown currency", () => {
+    const r = renderEmail("PAYOUT_SENT", { amount_minor: 5000, currency: "AUD" });
+    expect(r.text).toContain("Hi there,");
+    expect(r.text).toContain("50.00 AUD");
+  });
+
+  it("does not crash on a missing amount", () => {
+    const r = renderEmail("PAYOUT_SENT", {});
+    expect(r.text).toMatch(/₹0\.00/);
+  });
+});
