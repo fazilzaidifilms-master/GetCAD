@@ -15,9 +15,27 @@ Legend: ☐ you do it · 🔎 how to know it worked · ⚠️ easy to get wrong.
 
 ## Phase 0 — Green light (local, ~15 min)
 
-- ☐ On `main`, run `npm run ci`. Everything must pass.
-  🔎 `typecheck → lint → test → secret-scan` all succeed. If tests can't reach a
-  database, start the throwaway one first: `npm run test:db:up`.
+- ☐ **Be on `main` first.** Feature branches (`claude/slice-…`) are old snapshots
+  and may lack the tooling below.
+  ```bash
+  git checkout main && git pull origin main
+  ```
+- ☐ Sanity-check the code. Two levels, pick what you can run:
+  - **Enough on its own** (no database needed):
+    ```bash
+    npm run typecheck && npm run lint
+    ```
+  - **The full suite too** — start the throwaway database *first*, or the DB
+    tests fail with `ECONNREFUSED 127.0.0.1:5433` (that error means "no test
+    database running," never "the code is broken"):
+    ```bash
+    npm run test:db:up    # a disposable Postgres in Docker
+    npm run ci            # typecheck → lint → test → secret-scan
+    ```
+  🔎 You do **not** strictly need to run the DB tests locally: CI already runs all
+  of them green on every merge into `main`. If `test:db:up` errors because Docker
+  isn't available in your environment, the two commands in the first box are a
+  sufficient green light.
 - ☐ Decide your production domain (e.g. `thecadpillar.com`).
 - ☐ Decide: reuse the existing Supabase project, or a fresh one? See
   [DEPLOY.md → "Decisions worth making first"](./DEPLOY.md). Reuse is fine for a
