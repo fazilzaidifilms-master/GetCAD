@@ -68,3 +68,14 @@ keeping. CI uses the same `postgres:16` image, so local and CI agree.
 
 See [`docs/BLACKBOX.md`](docs/BLACKBOX.md) for the exact commands to run each of
 the five acceptance tests yourself.
+
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [`docs/SYSTEM.md`](docs/SYSTEM.md) | How the platform works: the order lifecycle, money custody, the anonymity model, and the guarantees enforced in the database. |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Running the business: every role and the actions it can take, team setup, the runbook for when things go wrong, known limits. |
+| [`docs/LAUNCH.md`](docs/LAUNCH.md) | The ordered go-live checklist, from green light to first customer. |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | One-time infrastructure setup reference (Clerk, Vercel, domain, webhook). |
+| [`docs/BLACKBOX.md`](docs/BLACKBOX.md) | Acceptance tests you can run by hand. |
+| [`db/README.md`](db/README.md) | Every migration and RLS policy, and why it exists. |
