@@ -86,6 +86,10 @@ you skip this, every signed-in database read returns nothing, because
 3. Add the environment variables below (Settings → Environment Variables), for
    the **Production** environment.
 4. Deploy.
+5. Settings → **Deployment Protection**: Production must **not** be protected.
+   Protection answers every request with a login wall, so Razorpay's webhook
+   gets a `401` from Vercel and never reaches the app — money would be taken
+   and escrow never funded. Protecting *preview* deployments is fine.
 
 ### Environment variables
 
@@ -153,6 +157,10 @@ And end to end:
 export DATABASE_URL="<supabase pooler string>"
 APP_URL="https://yourdomain.com" npm run verify:payment
 ```
+
+`APP_URL` must include the scheme and must be the **production** URL — a
+`*-<hash>-<team>.vercel.app` preview is protected, and the run stops at step 0
+rather than let the signature checks pass against a login wall.
 
 ## Rollback
 

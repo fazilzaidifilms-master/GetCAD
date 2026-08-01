@@ -18,6 +18,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 
+import { assertAppReachable, assertNotAuthWall, normalizeAppUrl } from "./lib/app-url.mjs";
+
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /* ------------------------------------------------------------------ env -- */
@@ -38,7 +40,7 @@ function loadEnvLocal() {
 loadEnvLocal();
 
 const DATABASE_URL = process.env.DATABASE_URL;
-const APP_URL = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const APP_URL = normalizeAppUrl(process.env.APP_URL);
 const KEY_ID = process.env.RAZORPAY_KEY_ID;
 const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -117,6 +119,18 @@ async function cleanup() {
 }
 
 try {
+  // Before anything is seeded: prove APP_URL reaches THIS app. Checks 4 and 5
+  // below assert a rejection, so a login wall in front of the deployment would
+  // satisfy them without the app being asked — see scripts/lib/app-url.mjs.
+  step("0. Reaching the app");
+  {
+    const health = await assertAppReachable(APP_URL);
+    pass(`${APP_URL} answers /api/health — status ${health.status}`);
+    if (health.unset.length) {
+      console.log(`     note: not configured there: ${health.unset.join(", ")}`);
+    }
+  }
+
   step("1. Seeding a QUOTED order");
   await cleanup();
   await db.query("INSERT INTO users (id, role, status) VALUES ($1,'CLIENT','ACTIVE')", [clientId]);
@@ -191,9 +205,11 @@ try {
     return { body, signature: createHmac("sha256", WEBHOOK_SECRET).update(body).digest("hex") };
   }
 
+  /** POST to the webhook route, returning the status and body together. */
   async function post(body, signature) {
+    let res;
     try {
-      return await fetch(`${APP_URL}/api/webhooks/razorpay`, {
+      res = await fetch(`${APP_URL}/api/webhooks/razorpay`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-razorpay-signature": signature },
         body,
@@ -206,14 +222,23 @@ try {
           `(${e instanceof Error ? e.message : String(e)})`,
       );
     }
+    const text = await res.text();
+    // A 401 from a login wall must never be read as the route refusing us.
+    assertNotAuthWall(APP_URL, res, text);
+    return { ok: res.ok, status: res.status, text };
   }
 
   step("4. Rejecting an UNSIGNED webhook (anyone could POST this)");
   {
     const { body } = signedWebhook();
     const res = await post(body, "deadbeef");
-    if (res.status === 401) pass("401 — bad signature refused");
-    else fail(`expected 401, got ${res.status}`, (await res.text()).slice(0, 200));
+    // The body matters as much as the status: it proves the refusal came from
+    // our signature check and not from something in front of the app.
+    if (res.status === 401 && res.text.includes("invalid signature")) {
+      pass("401 invalid signature — refused by the route itself");
+    } else {
+      fail(`expected a 401 from the route, got ${res.status}`, res.text.slice(0, 200));
+    }
   }
 
   step("5. Rejecting a TAMPERED amount (signed, but for ₹1)");
@@ -234,7 +259,7 @@ try {
   {
     const { body, signature } = signedWebhook();
     const res = await post(body, signature);
-    const text = await res.text();
+    const text = res.text;
     if (!res.ok) {
       fail(`webhook rejected (${res.status})`, text.slice(0, 300));
     } else {

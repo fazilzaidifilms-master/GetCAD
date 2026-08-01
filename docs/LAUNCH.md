@@ -124,6 +124,12 @@ password manager, never in the repo.
   ⚠️ Nothing secret may start with `NEXT_PUBLIC_`.
 - ☐ Add your domain (Vercel → Settings → Domains) and complete the DNS.
 - ☐ Deploy.
+- ☐ Vercel → Settings → **Deployment Protection** → confirm **Production is not
+  protected**.
+  ⚠️ Protection puts a login wall in front of every request. Razorpay's webhook
+  would be answered by Vercel with a `401` and never reach the app — payments
+  would be taken and escrow never funded. (Leaving *preview* deployments
+  protected is fine and sensible.)
 
 ## Phase 4 — Webhook
 
@@ -155,7 +161,13 @@ password manager, never in the repo.
   export DATABASE_URL="<supabase pooler string>"
   APP_URL="https://yourdomain.com" npm run verify:payment
   ```
-  🔎 All checks pass. It cleans up after itself.
+  🔎 All checks pass, starting with `0. Reaching the app`. It cleans up after
+  itself.
+  ⚠️ `APP_URL` must be your **production** URL — the one *without* a deployment
+  hash (`myapp-a1b2c3d4-team.vercel.app` is a preview, `myapp.vercel.app` or
+  your own domain is production). Include the `https://`. A preview URL sits
+  behind Deployment Protection; step 0 stops the run there rather than let the
+  signature checks pass against a login wall.
 - ☐ Payout path — this is the one seam CI can't cover:
   1. Create **one** real Route linked account for a test designer in the
      Razorpay dashboard, then record it:
@@ -205,6 +217,9 @@ password manager, never in the repo.
   Production. No rebuild.
 - **Signed-in reads empty** → Phase 1a Supabase re-registration.
 - **Webhook rejected (401)** → the secret in Vercel and in the Razorpay webhook
-  config don't match.
+  config don't match — *unless* the body says "Protected deployment", in which
+  case it is Vercel's login wall, not the app. Turn off Deployment Protection
+  for Production.
+- **`verify:*` says "Failed to parse URL"** → `APP_URL` is missing `https://`.
 - **`/api/health` 503** → it names the missing group; set that variable.
 - **Sitemap points at localhost** → `NEXT_PUBLIC_SITE_URL` is unset.
