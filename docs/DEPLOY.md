@@ -2,23 +2,63 @@
 
 Everything here is a one-time setup. After it, deploys are `git push`.
 
-## Decisions worth making first
+## Who owns what
 
-**Reuse your existing Supabase project, or create a fresh one for production?**
+Production access is three things, and they should all sit under a **business
+account** (a role address such as `admin@thecadpillar.com` survives someone
+leaving; a personal mailbox does not). Add named humans as members — never share
+a login.
 
-Reusing is what I'd suggest for now: you have zero real users, the Clerk↔Supabase
-bridge is already configured, and the schema is current. The cost is that test
-rows (prefixed `verify_`, plus any orders from role-flipping) live alongside real
-ones. Clean them up before your first real customer:
+| Surface | What it controls |
+|---|---|
+| **Vercel** | What is deployed, and every environment secret. |
+| **Supabase** | All the data — **and** the only way to assign staff roles, since there is no UI for it. SQL-editor access *is* the admin permission. |
+| **Razorpay** | Where money settles. Bound to a **legal entity**, not just an email. |
+
+⚠️ **Razorpay is not transferable like the others.** The account carries the
+entity's KYC, PAN and settlement bank account, and tax filings follow it. Same
+entity changing email → ask Razorpay support. Different entity → a new account
+and new KYC (1–2 days). Do not go live on an account registered to the wrong
+entity; unwinding that after real payments is painful.
+
+## Use a dedicated Supabase project
+
+**Create a Supabase project used only by this application.** Do not share one
+with another product.
+
+The schema creates `users`, `orders`, `messages`, `notifications` and the type
+`role` in `public` — names common enough to collide with almost any other
+project. A collision makes `npm run db:apply` fail partway, leaving you
+half-migrated. To check a candidate project before committing to it:
 
 ```sql
--- inspect first
-SELECT id, status, created_at FROM orders WHERE id LIKE 'verify_%';
+SELECT 'TABLE: ' || tablename FROM pg_tables
+WHERE schemaname='public' AND tablename IN
+ ('users','orders','messages','notifications','disputes','payouts','payment_intents',
+  'payout_accounts','escrow_ledger','file_versions','client_profiles','designer_profiles',
+  'agreement_documents','agreement_acceptances','designer_applications','marketing_leads',
+  'rate_limit_events','order_transitions','email_outbox')
+UNION ALL
+SELECT 'TYPE: ' || typname FROM pg_type WHERE typname IN ('role','user_status','order_status');
 ```
 
-Creating a fresh production project is cleaner but means redoing migrations,
-Storage buckets, and the Clerk Third-Party Auth registration. Worth doing when
-you have real data to protect, not before.
+Any rows returned means you must use a different project.
+
+⚠️ **If `db:apply` fails with "already exists", do NOT run `npm run db:baseline`.**
+That marks migrations as applied *without running them* — it is the fix for your
+own interrupted run, not for a foreign table, and it would leave you with an
+empty schema the ledger claims is complete.
+
+Beyond collisions, this system holds bank details and moves money under an
+anonymity guarantee. Sharing a database with an unrelated app means one bad
+migration or one leaked service-role key crosses both.
+
+> Reusing a project you already migrated is fine **if** the collision check comes
+> back empty and nothing else uses it. In that case, clear the test rows before
+> your first real customer — they are all prefixed `verify_`:
+> ```sql
+> SELECT id, status, created_at FROM orders WHERE id LIKE 'verify_%';
+> ```
 
 ---
 
@@ -38,7 +78,9 @@ you skip this, every signed-in database read returns nothing, because
 
 ## 2. Vercel
 
-1. vercel.com → **Add New → Project** → import `fazilzaidifilms-master/GetCAD`.
+1. vercel.com → **Add New → Project** → import the **GetCAD** repository from your
+   GitHub organisation. Sign in to Vercel as the **business account** that owns
+   production (see "Who owns what" below), not a personal one.
 2. Framework preset: **Next.js**. Build command and output directory: leave as
    detected. Do NOT set a custom build command.
 3. Add the environment variables below (Settings → Environment Variables), for
