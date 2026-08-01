@@ -37,10 +37,14 @@ Legend: ☐ you do it · 🔎 how to know it worked · ⚠️ easy to get wrong.
   isn't available in your environment, the two commands in the first box are a
   sufficient green light.
 - ☐ Decide your production domain (e.g. `thecadpillar.com`).
-- ☐ Decide: reuse the existing Supabase project, or a fresh one? See
-  [DEPLOY.md → "Decisions worth making first"](./DEPLOY.md). Reuse is fine for a
-  soft launch; clean the `verify_` test rows before the first real customer
-  (Phase 6).
+- ☐ Confirm **who owns production** — the Vercel, Supabase and Razorpay accounts
+  should sit under a business address, not a personal one. See
+  [DEPLOY.md → "Who owns what"](./DEPLOY.md).
+- ☐ Use a **dedicated Supabase project** for this app, and run the collision
+  check in [DEPLOY.md → "Use a dedicated Supabase project"](./DEPLOY.md) before
+  pointing migrations at any existing project.
+  ⚠️ If `db:apply` later fails with "already exists", **do not** run
+  `db:baseline` — see Phase 2.
 
 ## Phase 1 — Production accounts & credentials
 
@@ -92,12 +96,20 @@ password manager, never in the repo.
   ```
   ⚠️ Migrations are **forward-only** — there are no down-migrations. They were
   each tested against a throwaway Postgres by `npm test`.
-- ☐ If you ever hit `type "role" already exists` on a project that predates the
-  migration ledger, run `npm run db:baseline` once, then `db:apply`.
+- ☐ If `db:apply` fails with **"already exists"**, work out *why* before doing
+  anything else — the right fix depends entirely on the cause:
+
+  | Cause | Fix |
+  |---|---|
+  | **This project already ran these migrations**, before the ledger existed (you recognise the tables as ours) | `npm run db:baseline` once, then `db:apply`. |
+  | **Something else owns that name** — a different app's `users`/`orders`/`role` | ⚠️ **Do NOT baseline.** Use a different Supabase project. Baselining here marks migrations as applied *without running them*, leaving an empty schema the ledger claims is complete. |
+
+  The collision check in [DEPLOY.md](./DEPLOY.md) tells the two apart in advance.
 
 ## Phase 3 — Deploy the app (Vercel)
 
-- ☐ Import `fazilzaidifilms-master/GetCAD` (DEPLOY.md → step 2). Framework:
+- ☐ Import the **GetCAD** repo from your GitHub organisation, signed in to Vercel
+  as the business account (DEPLOY.md → step 2). Framework:
   Next.js, detected build settings — **do not** set a custom build command.
 - ☐ Add the environment variables for **Production**. The full table is in
   [DEPLOY.md → Environment variables](./DEPLOY.md); **plus** the email vars:
