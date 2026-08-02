@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 // production. The URL handling in them is the part most likely to be wrong at
 // exactly the moment nobody is watching, so it is tested here.
 // @ts-expect-error — untyped .mjs helper, exercised for behaviour not types.
-import { isAuthWall, normalizeAppUrl } from "../../scripts/lib/app-url.mjs";
+import { assertNotAuthWall, isAuthWall, normalizeAppUrl } from "../../scripts/lib/app-url.mjs";
 
 function response(status: number, headers: Record<string, string> = {}): Response {
   return new Response(null, { status, headers });
@@ -55,5 +55,21 @@ describe("isAuthWall", () => {
 
   it("ignores successful responses", () => {
     expect(isAuthWall(response(200), '{"status":"ok"}')).toBe(false);
+  });
+});
+
+describe("assertNotAuthWall", () => {
+  // A 404 is not a refusal. The tampered-amount check accepts any status >= 400,
+  // so an APP_URL pointing at something without the route would pass it.
+  it("treats a 404 as a misconfigured APP_URL, not a rejection", () => {
+    expect(() => assertNotAuthWall("https://example.com", response(404), "<!DOCTYPE html>")).toThrow(
+      /nothing is serving the webhook there/,
+    );
+  });
+
+  it("lets the route's own refusal through", () => {
+    expect(() =>
+      assertNotAuthWall("https://example.com", response(401), '{"error":"invalid signature"}'),
+    ).not.toThrow();
   });
 });

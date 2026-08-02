@@ -92,9 +92,23 @@ export async function assertAppReachable(appUrl) {
 }
 
 /**
- * Wrap a webhook POST so an auth wall is reported as the configuration error it
- * is, instead of being mistaken for the route's own rejection.
+ * Wrap a webhook POST so a response that did not come from the route is
+ * reported as the configuration error it is, instead of being mistaken for the
+ * route's own rejection.
+ *
+ * A 404 gets the same treatment as an auth wall, and for the same reason: the
+ * "a tampered amount is refused" check accepts any status >= 400, so a 404
+ * satisfies it. The route answering "no such thing" is not the route refusing
+ * anything — it means APP_URL points somewhere that has no webhook endpoint.
  */
 export function assertNotAuthWall(appUrl, res, text) {
   if (isAuthWall(res, text)) throw authWallError(appUrl);
+  if (res.status === 404) {
+    throw new Error(
+      `${appUrl}/api/webhooks/razorpay returned 404 — nothing is serving the webhook there.\n` +
+        `      A 404 would satisfy the "refused" checks below without the route existing.\n` +
+        `      Check APP_URL: it must be the deployment you actually want to test,\n` +
+        `      and the same one the Razorpay webhook points at.`,
+    );
+  }
 }
