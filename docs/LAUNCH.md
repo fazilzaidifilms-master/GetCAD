@@ -67,9 +67,19 @@ password manager, never in the repo.
   test-mode keys are fine — just don't advertise it as taking real payments.)
 - ☐ Enable **Razorpay Route** on the account (needed to pay designers). Ask
   Razorpay support if it isn't already active — activation can take a day.
-- ☐ Invent a strong `RAZORPAY_WEBHOOK_SECRET` (any long random string). ⚠️ This
-  is a **different** value from the key secret. You'll paste the same value into
-  Vercel and the webhook config (Phase 4).
+- ☐ Generate a strong `RAZORPAY_WEBHOOK_SECRET`:
+  ```bash
+  openssl rand -hex 32
+  ```
+  ⚠️ This is a **different** value from the key secret, and it is **not** the
+  webhook URL. It is the shared string Razorpay signs each webhook with. You'll
+  paste the same value into three places: `.env.local`, Vercel, and the Razorpay
+  webhook config (Phase 4). All three must match exactly.
+  🔎 A weak or public secret does **not** fail any test — both ends of the
+  signature agree with each other whatever the value is, so `verify:payment`
+  goes green while anyone who can guess it can forge a payment and fund escrow
+  without paying. The app now refuses to start on a secret that is a URL, a copy
+  of the key secret, or under 16 characters, and `/api/health` reports it.
 
 ### 1c. Email (Resend)
 - ☐ Create a Resend account.

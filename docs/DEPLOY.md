@@ -103,7 +103,7 @@ you skip this, every signed-in database read returns nothing, because
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key |
 | `RAZORPAY_KEY_ID` | Razorpay key id |
 | `RAZORPAY_KEY_SECRET` | Razorpay key secret |
-| `RAZORPAY_WEBHOOK_SECRET` | The secret you set on the Razorpay webhook — a DIFFERENT value from the key secret |
+| `RAZORPAY_WEBHOOK_SECRET` | The signing secret you set on the Razorpay webhook. A DIFFERENT value from the key secret, and NOT the webhook URL. Generate with `openssl rand -hex 32` |
 | `NEXT_PUBLIC_SITE_URL` | `https://yourdomain.com` (no trailing slash) |
 | `RATE_LIMIT_SALT` | Any long random string |
 
