@@ -178,6 +178,18 @@ password manager, never in the repo.
   your own domain is production). Include the `https://`. A preview URL sits
   behind Deployment Protection; step 0 stops the run there rather than let the
   signature checks pass against a login wall.
+- ☐ **Prove Razorpay can reach you.** Everything above signs its own webhooks,
+  so none of it involves Razorpay's delivery. Make one real payment through
+  checkout, then reconcile it against Razorpay's own record:
+  ```bash
+  npm run verify:delivery          # --days 7 to look further back
+  ```
+  🔎 Every captured payment maps to a funded escrow leg. A `CAPTURED BUT NEVER
+  FUNDED` line means the webhook is not being delivered — almost always the
+  Secret in the Razorpay webhook config not matching `RAZORPAY_WEBHOOK_SECRET`.
+  ⚠️ This is the failure that no other check can see: the money is collected,
+  the client sees success, and the order stays at `QUOTED`. Run it once at
+  launch, and on a schedule afterwards.
 - ☐ Payout path — this is the one seam CI can't cover:
   1. Create **one** real Route linked account for a test designer in the
      Razorpay dashboard, then record it:

@@ -22,7 +22,8 @@
     "verify:payment": "node scripts/verify-payment.mjs",
     "verify:payout": "node scripts/verify-payout.mjs",
     "payouts:link": "node scripts/link-payout-account.mjs",
-    "send-emails": "npx tsx scripts/send-emails.mjs"
+    "send-emails": "npx tsx scripts/send-emails.mjs",
+    "verify:delivery": "node scripts/verify-webhook-delivery.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.5",
