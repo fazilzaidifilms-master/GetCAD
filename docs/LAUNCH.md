@@ -67,9 +67,19 @@ password manager, never in the repo.
   test-mode keys are fine — just don't advertise it as taking real payments.)
 - ☐ Enable **Razorpay Route** on the account (needed to pay designers). Ask
   Razorpay support if it isn't already active — activation can take a day.
-- ☐ Invent a strong `RAZORPAY_WEBHOOK_SECRET` (any long random string). ⚠️ This
-  is a **different** value from the key secret. You'll paste the same value into
-  Vercel and the webhook config (Phase 4).
+- ☐ Generate a strong `RAZORPAY_WEBHOOK_SECRET`:
+  ```bash
+  openssl rand -hex 32
+  ```
+  ⚠️ This is a **different** value from the key secret, and it is **not** the
+  webhook URL. It is the shared string Razorpay signs each webhook with. You'll
+  paste the same value into three places: `.env.local`, Vercel, and the Razorpay
+  webhook config (Phase 4). All three must match exactly.
+  🔎 A weak or public secret does **not** fail any test — both ends of the
+  signature agree with each other whatever the value is, so `verify:payment`
+  goes green while anyone who can guess it can forge a payment and fund escrow
+  without paying. The app now refuses to start on a secret that is a URL, a copy
+  of the key secret, or under 16 characters, and `/api/health` reports it.
 
 ### 1c. Email (Resend)
 - ☐ Create a Resend account.
@@ -124,6 +134,12 @@ password manager, never in the repo.
   ⚠️ Nothing secret may start with `NEXT_PUBLIC_`.
 - ☐ Add your domain (Vercel → Settings → Domains) and complete the DNS.
 - ☐ Deploy.
+- ☐ Vercel → Settings → **Deployment Protection** → confirm **Production is not
+  protected**.
+  ⚠️ Protection puts a login wall in front of every request. Razorpay's webhook
+  would be answered by Vercel with a `401` and never reach the app — payments
+  would be taken and escrow never funded. (Leaving *preview* deployments
+  protected is fine and sensible.)
 
 ## Phase 4 — Webhook
 
@@ -155,7 +171,25 @@ password manager, never in the repo.
   export DATABASE_URL="<supabase pooler string>"
   APP_URL="https://yourdomain.com" npm run verify:payment
   ```
-  🔎 All checks pass. It cleans up after itself.
+  🔎 All checks pass, starting with `0. Reaching the app`. It cleans up after
+  itself.
+  ⚠️ `APP_URL` must be your **production** URL — the one *without* a deployment
+  hash (`myapp-a1b2c3d4-team.vercel.app` is a preview, `myapp.vercel.app` or
+  your own domain is production). Include the `https://`. A preview URL sits
+  behind Deployment Protection; step 0 stops the run there rather than let the
+  signature checks pass against a login wall.
+- ☐ **Prove Razorpay can reach you.** Everything above signs its own webhooks,
+  so none of it involves Razorpay's delivery. Make one real payment through
+  checkout, then reconcile it against Razorpay's own record:
+  ```bash
+  npm run verify:delivery          # --days 7 to look further back
+  ```
+  🔎 Every captured payment maps to a funded escrow leg. A `CAPTURED BUT NEVER
+  FUNDED` line means the webhook is not being delivered — almost always the
+  Secret in the Razorpay webhook config not matching `RAZORPAY_WEBHOOK_SECRET`.
+  ⚠️ This is the failure that no other check can see: the money is collected,
+  the client sees success, and the order stays at `QUOTED`. Run it once at
+  launch, and on a schedule afterwards.
 - ☐ Payout path — this is the one seam CI can't cover:
   1. Create **one** real Route linked account for a test designer in the
      Razorpay dashboard, then record it:
@@ -205,6 +239,9 @@ password manager, never in the repo.
   Production. No rebuild.
 - **Signed-in reads empty** → Phase 1a Supabase re-registration.
 - **Webhook rejected (401)** → the secret in Vercel and in the Razorpay webhook
-  config don't match.
+  config don't match — *unless* the body says "Protected deployment", in which
+  case it is Vercel's login wall, not the app. Turn off Deployment Protection
+  for Production.
+- **`verify:*` says "Failed to parse URL"** → `APP_URL` is missing `https://`.
 - **`/api/health` 503** → it names the missing group; set that variable.
 - **Sitemap points at localhost** → `NEXT_PUBLIC_SITE_URL` is unset.

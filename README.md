@@ -37,6 +37,7 @@ npm run secret-scan  # scan tracked files for committed secrets
 npm run ci           # typecheck -> lint -> test -> secret-scan (what CI runs)
 npm run db:apply     # apply db/migrations + db/policies to $DATABASE_URL
 npm run send-emails  # drain the email outbox (retries; also runs inline)
+npm run verify:delivery # reconcile Razorpay's captured payments against our escrow
 ```
 
 ## Running the database tests locally

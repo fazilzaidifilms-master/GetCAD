@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { webhookSecretProblem } from "@/config/payments";
+
 /**
  * Deployment health check.
  *
@@ -39,6 +41,18 @@ export function GET(): NextResponse {
     ]),
   );
 
+  // `payments` being SET is not the same as `payments` being SAFE. A webhook
+  // secret that is a URL, or a copy of the key secret, or short enough to guess
+  // lets a forged payment fund escrow — and nothing else notices, because both
+  // ends of the signature agree with each other. Report it as unconfigured.
+  const secretProblem = groups.payments
+    ? webhookSecretProblem(
+        (process.env.RAZORPAY_WEBHOOK_SECRET ?? "").trim(),
+        (process.env.RAZORPAY_KEY_SECRET ?? "").trim(),
+      )
+    : null;
+  if (secretProblem) groups.payments = false;
+
   const ready = REQUIRED.every((g) => groups[g]);
 
   return NextResponse.json(
@@ -50,6 +64,9 @@ export function GET(): NextResponse {
       note: ready
         ? undefined
         : `Missing configuration for: ${REQUIRED.filter((g) => !groups[g]).join(", ")}`,
+      // Safe to state: it describes the SHAPE of a misconfiguration, never a
+      // value, and an attacker able to exploit it already knows.
+      warning: secretProblem ?? undefined,
     },
     { status: ready ? 200 : 503 },
   );
