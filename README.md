@@ -64,6 +64,19 @@ keeping. CI uses the same `postgres:16` image, so local and CI agree.
 > does `DROP SCHEMA public CASCADE` on whatever it connects to. It is only ever
 > meant to hit the disposable local Postgres above. (`npm run db:apply` is the
 > opposite and is safe: it only *adds* migrations to `$DATABASE_URL`.)
+>
+> Since this warning was not enough on its own, the harness now **refuses** to
+> run against any host that is not local, and says so with the fix. The trap it
+> closes: `export DATABASE_URL=…` for a migration run, then `npm run ci` in the
+> same terminal an hour later. Nothing about that sequence looks dangerous while
+> you are typing it.
+>
+> Prefer an inline prefix over `export`, so the variable never outlives the
+> command that needed it:
+>
+> ```bash
+> DATABASE_URL="…" npm run db:apply
+> ```
 
 ## Black-box tests (A–E)
 
