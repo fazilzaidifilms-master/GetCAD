@@ -42,8 +42,14 @@ describe("tabsForRole", () => {
     }
   });
 
+  it("gives a client somewhere to start a job", () => {
+    expect(hrefs("CLIENT")).toContain("/orders/new");
+    // A designer does not commission work, so it would be noise in their bar.
+    expect(hrefs("DESIGNER")).not.toContain("/orders/new");
+  });
+
   it("offers no tab that is not a real route", () => {
-    const known = new Set(["/dashboard", "/orders", "/admin", "/account"]);
+    const known = new Set(["/dashboard", "/orders", "/orders/new", "/admin", "/account"]);
     for (const role of ["CLIENT", "DESIGNER", "OPS"]) {
       for (const href of hrefs(role)) expect(known.has(href)).toBe(true);
     }
@@ -55,6 +61,12 @@ describe("activeTabKey", () => {
 
   it("keeps the parent tab lit on a detail route", () => {
     expect(activeTabKey("/orders/ord_abc123", tabs)).toBe("orders");
+  });
+
+  // Both /orders and /orders/new match by prefix; the specific one must win or
+  // two tabs light at once.
+  it("lights New order rather than Orders on the creation route", () => {
+    expect(activeTabKey("/orders/new", tabs)).toBe("new");
   });
 
   it("matches the tab itself", () => {

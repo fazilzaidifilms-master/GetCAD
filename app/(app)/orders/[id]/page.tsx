@@ -145,6 +145,18 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       </div>
       <p className="tabular mt-0.5 font-mono text-xs text-muted-foreground">{order.id}</p>
 
+      {/* The brief is a route, not a panel: it is long, and it must be
+          resumable and linkable. */}
+      <Link
+        href={`/orders/${order.id}/brief`}
+        className="mt-4 flex min-h-[var(--ctl)] items-center justify-between rounded-[var(--r-lg)] border border-border bg-card px-4 transition-colors duration-[var(--dur-fast)] hover:bg-accent"
+      >
+        <span className="text-[length:var(--fs-4)] font-medium">The brief</span>
+        <span className="text-muted-foreground" aria-hidden>
+          →
+        </span>
+      </Link>
+
       <div className="mt-6">
         <OrderDetail
           order={order}

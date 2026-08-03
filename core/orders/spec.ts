@@ -134,6 +134,12 @@ export interface OrderSpecInput {
   centreWidthUm?: number | null;
   centreDepthUm?: number | null;
   centreCaratMct?: number | null;
+  /**
+   * A certified stone is cut to fixed dimensions, so the seat gets no
+   * tolerance either way. It changes the work, and `gradeBrief` asks for a
+   * depth once it is set.
+   */
+  centreCertified?: boolean;
   centreQuantity?: number;
   centreSetting?: string | null;
   basedOnOrderId?: string | null;

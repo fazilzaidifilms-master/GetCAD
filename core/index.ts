@@ -32,6 +32,8 @@ export {
   specIsComplete,
 } from "./orders/spec";
 export type { OrderSpecInput, SpecProblem } from "./orders/spec";
+export { gradeBrief, qualitySummary } from "./orders/briefQuality";
+export type { BriefQuality, BriefGap, BriefGrade, BriefContext, GapSeverity } from "./orders/briefQuality";
 export { ORDER_STATUS_META, statusMeta } from "./orders/status";
 export type { StatusTone, StatusMeta } from "./orders/status";
 export { buildTimeline } from "./orders/timeline";

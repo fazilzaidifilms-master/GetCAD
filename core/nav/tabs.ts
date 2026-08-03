@@ -26,7 +26,7 @@ export interface Tab {
   label: string;
   href: string;
   /** Icon name; the component maps it. Kept as data so this stays framework-free. */
-  icon: "home" | "list" | "work" | "queue" | "user";
+  icon: "home" | "list" | "work" | "queue" | "user" | "plus";
 }
 
 const ACCOUNT: Tab = { key: "account", label: "Account", href: "/account", icon: "user" };
@@ -38,13 +38,17 @@ const ACCOUNT: Tab = { key: "account", label: "Account", href: "/account", icon:
  * different rows, but they are not the same idea to the person reading it: one
  * is a queue of things to do, the other is a record of things bought.
  *
- * Missing on purpose, until the routes they point at exist: the client's "New
- * order" (arrives with the brief wizard), the designer's "Earnings", and staff
- * "Inbox". A tab that leads to a 404 is worse than a tab that is not there yet.
+ * Missing on purpose, until the routes they point at exist: the designer's
+ * "Earnings" and staff "Inbox". A tab that leads to a 404 is worse than a tab
+ * that is not there yet.
  */
 const CLIENT_TABS: Tab[] = [
   { key: "home", label: "Home", href: "/dashboard", icon: "home" },
   { key: "orders", label: "Orders", href: "/orders", icon: "list" },
+  // Ranked ahead of Account because starting a job is the thing a client comes
+  // here to do. `activeTabKey` prefers the longer match, so /orders/new lights
+  // this rather than Orders.
+  { key: "new", label: "New order", href: "/orders/new", icon: "plus" },
   ACCOUNT,
 ];
 

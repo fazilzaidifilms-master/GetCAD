@@ -53,6 +53,7 @@ const ICONS: Record<Tab["icon"], React.ReactNode> = {
       strokeLinejoin="round"
     />
   ),
+  plus: <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />,
 };
 
 export function BottomNav({ tabs }: { tabs: Tab[] }) {
