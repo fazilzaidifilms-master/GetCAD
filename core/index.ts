@@ -19,6 +19,19 @@ export { tabsForRole, activeTabKey } from "./nav/tabs";
 export type { Tab } from "./nav/tabs";
 export { orderActions, primaryAction } from "./orders/actions";
 export type { OrderAction, ActionIntent } from "./orders/actions";
+export {
+  mmToMicrons,
+  micronsToMm,
+  caratToMct,
+  mctToCarat,
+  formatMm,
+  formatCarat,
+  estimateMct,
+  estimateDiameterUm,
+  specProblems,
+  specIsComplete,
+} from "./orders/spec";
+export type { OrderSpecInput, SpecProblem } from "./orders/spec";
 export { ORDER_STATUS_META, statusMeta } from "./orders/status";
 export type { StatusTone, StatusMeta } from "./orders/status";
 export { buildTimeline } from "./orders/timeline";
