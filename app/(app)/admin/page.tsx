@@ -178,7 +178,7 @@ export default async function AdminPage() {
                           ))}
                         </div>
                         <Link
-                          href={`/orders?focus=${o.id}`}
+                          href={`/orders/${o.id}`}
                           className="shrink-0 text-sm font-medium text-primary hover:underline"
                         >
                           Act →
