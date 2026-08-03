@@ -15,6 +15,8 @@ export { isStaffRole, STAFF_ROLES } from "./auth/roles";
 export type { StaffRole } from "./auth/roles";
 export { availableTransitions } from "./orders/availableTransitions";
 export type { TransitionRow, ActorContext } from "./orders/availableTransitions";
+export { orderActions, primaryAction } from "./orders/actions";
+export type { OrderAction, ActionIntent } from "./orders/actions";
 export { ORDER_STATUS_META, statusMeta } from "./orders/status";
 export type { StatusTone, StatusMeta } from "./orders/status";
 export { buildTimeline } from "./orders/timeline";
