@@ -1,10 +1,13 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+// Self-hosted rather than fetched from Google at build time: the build must not
+// depend on an outbound request succeeding, and the fonts must not be requested
+// from a third party at runtime by a page that shows people's order data.
 
 export const metadata: Metadata = {
   title: {
@@ -21,7 +24,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="en" className={inter.variable}>
+      <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
         <body className="min-h-screen bg-background font-sans text-foreground antialiased">
           {children}
         </body>

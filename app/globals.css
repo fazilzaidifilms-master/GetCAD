@@ -30,10 +30,10 @@
     --border: 0 0% 90%;
     --input: 0 0% 87%;
 
-    /* The single functional accent. */
-    --primary: 222 78% 48%;
+    /* The single functional accent — #2F51D9, from the design system. */
+    --primary: 228 69% 52%;
     --primary-foreground: 0 0% 100%;
-    --ring: 222 78% 48%;
+    --ring: 228 69% 52%;
 
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
@@ -65,12 +65,94 @@
     --border: 0 0% 18%;
     --input: 0 0% 22%;
 
-    --primary: 217 90% 62%;
+    --primary: 227 86% 72%; /* #7B96F5 */
     --primary-foreground: 0 0% 100%;
-    --ring: 217 90% 62%;
+    --ring: 227 86% 72%;
 
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
+  }
+
+  /*
+   * The measurable half of the design system.
+   *
+   * Everything below is a NUMBER a screen should never invent for itself: a
+   * type step, a spacing step, a radius, a shadow, a duration. Screens compose
+   * these; they do not choose their own. That is what makes a later change to
+   * "how dense the app feels" or "how round things are" a single-file edit
+   * rather than a hunt through fifteen components — which is the whole point of
+   * having tokens at all.
+   *
+   * The scale is lifted from the design prototype unchanged, including the
+   * per-step line-height and letter-spacing pairings: the tightening as text
+   * gets larger is deliberate, and picking a font size without its matching
+   * pair is how a careful type scale quietly stops being one.
+   */
+
+  :root {
+    /* Type: size / line-height / tracking, paired by step. */
+    --fs-1: 11px;   --lh-1: 16px;  --ls-1: 0.055em;   /* micro caps, labels */
+    --fs-2: 12px;   --lh-2: 18px;  --ls-2: 0.002em;   /* meta, captions */
+    --fs-3: 13px;   --lh-3: 20px;  --ls-3: -0.006em;  /* dense UI text */
+    --fs-4: 15px;   --lh-4: 22px;  --ls-4: -0.011em;  /* default UI text */
+    --fs-5: 20px;   --lh-5: 27px;  --ls-5: -0.019em;  /* section titles */
+    --fs-6: 28px;   --lh-6: 34px;  --ls-6: -0.026em;  /* screen titles */
+    --fs-b: 16px;   --lh-b: 24px;                     /* body / long-form */
+    --fs-l: 14px;   --lh-l: 20px;                     /* list rows */
+
+    --fw-regular: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+
+    /* Spacing, in 4px steps. */
+    --s-0: 0px;   --s-05: 2px;  --s-1: 4px;   --s-2: 8px;   --s-3: 12px;
+    --s-4: 16px;  --s-5: 20px;  --s-6: 24px;  --s-8: 32px;  --s-10: 40px;
+    --s-12: 48px; --s-16: 64px;
+
+    --r-xs: 3px; --r-sm: 5px; --r-md: 7px; --r-lg: 10px; --r-xl: 14px;
+    --r-full: 999px;
+
+    /*
+     * Minimum interactive height. 48px, not the 44px minimum, because these are
+     * one-way money and state actions taken on a phone — an accidental
+     * "Approve and release" is not undoable.
+     */
+    --ctl: 48px;
+
+    --dur-instant: 80ms;
+    --dur-fast: 120ms;
+    --dur-base: 180ms;
+    --dur-slow: 280ms;
+    --ease-out: cubic-bezier(0.22, 0.68, 0.24, 1);
+    --ease-inout: cubic-bezier(0.5, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.16, 1.12, 0.3, 1);
+
+    /* Light-mode surfaces and depth. */
+    --accent-quiet: #edf0fd;
+    --accent-quiet-hover: #e3e8fc;
+    --accent-line: rgba(47, 81, 217, 0.32);
+    --border-subtle: rgba(18, 19, 22, 0.07);
+    --border-strong: rgba(18, 19, 22, 0.15);
+    --e-0: none;
+    --e-1: 0 1px 2px rgba(18, 19, 22, 0.05);
+    --e-2: 0 4px 14px -3px rgba(18, 19, 22, 0.09);
+    --focus-ring: 0 0 0 3px rgba(47, 81, 217, 0.22);
+  }
+
+  .dark {
+    /*
+     * Dark is not light inverted. Borders become light-on-dark at a DIFFERENT
+     * opacity, and shadows get heavier rather than lighter, because a shadow on
+     * a dark surface has almost no contrast to work with.
+     */
+    --accent-quiet: #1a1f32;
+    --accent-quiet-hover: #212840;
+    --accent-line: rgba(123, 150, 245, 0.34);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.17);
+    --e-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --e-2: 0 4px 14px -3px rgba(0, 0, 0, 0.55);
+    --focus-ring: 0 0 0 3px rgba(123, 150, 245, 0.28);
   }
 
   * {
