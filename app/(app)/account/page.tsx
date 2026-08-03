@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { partyLabel } from "@/components/domain";
+import { InstallHint } from "@/components/pwa/install-hint";
 import { Button } from "@/components/ui/button";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
@@ -50,6 +51,8 @@ export default async function AccountPage() {
           hint="Quote this if you contact us. It identifies your account without naming you."
         />
       </dl>
+
+      <InstallHint />
 
       {role === "DESIGNER" ? (
         <div className="mt-4">

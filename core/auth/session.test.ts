@@ -15,10 +15,29 @@ describe("isProtectedPath", () => {
     expect(isProtectedPath("/orders/abc")).toBe(true);
   });
 
+  // These relied on their own page-level auth() guard and nothing in front of
+  // it. The guards are the real control; this is the layer that means a new
+  // page under an existing prefix inherits protection rather than remembering
+  // it.
+  it("protects the rest of the authenticated product", () => {
+    expect(isProtectedPath("/account")).toBe(true);
+    expect(isProtectedPath("/admin")).toBe(true);
+    expect(isProtectedPath("/admin/applications")).toBe(true);
+    expect(isProtectedPath("/admin/leads")).toBe(true);
+    expect(isProtectedPath("/settings/payouts")).toBe(true);
+    expect(isProtectedPath("/onboarding/designer")).toBe(true);
+  });
+
   it("leaves public paths open", () => {
     expect(isProtectedPath("/")).toBe(false);
     expect(isProtectedPath("/sign-in")).toBe(false);
     expect(isProtectedPath("/sign-up")).toBe(false);
+  });
+
+  // Precached and served when the network is gone — it must never redirect to
+  // a sign-in page that by definition cannot load.
+  it("leaves the offline fallback reachable", () => {
+    expect(isProtectedPath("/offline")).toBe(false);
   });
 
   it("does not protect look-alike prefixes", () => {
