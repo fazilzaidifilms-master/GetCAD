@@ -152,3 +152,32 @@ executing them; afterwards `db:apply` only ever runs genuinely new files.
 - Identity is isolated in the profile tables — never on `users` or `orders`.
 - All FKs are `ON DELETE RESTRICT`.
 - Default-deny RLS on every table; allow policies come in a later slice.
+
+## 0028 — order specs
+
+The brief: what is actually being made. One row per order (`order_specs`) plus a
+child table for accent stone rows (`order_spec_accents`), because a group of
+stones sharing a size and setting is one row, not eighteen.
+
+Measurements are **integers in microns**, carat weights integers in thousandths
+— the same rule money follows, for the same reason: these numbers decide whether
+a seat can physically be cut, and floats compare badly.
+
+Two invariants live in the schema rather than the UI:
+
+- **The freeze.** A brief is writable only while the order is `DRAFT` or
+  `SUBMITTED`. Once it is `QUOTED` the work has been priced, and a silently
+  enlarged centre stone would mean the client pays for one job and the designer
+  builds another. A changed brief after that point is a new order — which is
+  what `based_on_order_id` is for.
+- **Coherence.** `order_specs_centre_coherent` refuses a centre stone with no
+  shape or setting, and refuses stone dimensions on an order that says it has no
+  centre stone. Without it, clearing the question leaves a ghost 6.5mm round in
+  the brief and the designer builds a head for it.
+
+`min_wall_um(purpose)` is derived rather than stored so it cannot drift from the
+purpose it comes from.
+
+RLS (policies/0023) asks whether the ORDER is visible rather than restating the
+five conditions that decide it, so a brief follows its order's visibility
+automatically — including for rules that do not exist yet.
