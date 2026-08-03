@@ -2,10 +2,17 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import type { Pin } from "@/core";
+import { ORDER_FILES_BUCKET } from "@/config/supabase";
 import { ErrorPanel } from "@/components/error-panel";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 import { BriefWizard, type AccentRow } from "./BriefWizard";
+import { ReferenceSection, type ReferenceImage } from "./ReferenceSection";
+
+/** Long enough to fill in a brief on a phone, short enough not to be a link. */
+const REFERENCE_URL_TTL_SECONDS = 60 * 60;
 
 /**
  * The brief for one order, at its own resumable URL.
@@ -35,6 +42,14 @@ interface SpecRow {
   centre_certified: boolean;
 }
 
+interface ImageRow {
+  id: string;
+  object_key: string;
+  is_primary: boolean;
+  position: number;
+  order_reference_pins: Array<{ x_bp: number; y_bp: number; label: string; position: number }> | null;
+}
+
 interface AccentDbRow {
   position: number;
   shape: string;
@@ -51,12 +66,17 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
   const supabase = await createUserSupabaseClient();
   await supabase.rpc("ensure_self");
 
-  const [orderRes, specRes, accentsRes] = await Promise.all([
+  const [orderRes, specRes, accentsRes, imagesRes] = await Promise.all([
     supabase.from("orders").select("id, status, client_id").eq("id", id).maybeSingle(),
     supabase.from("order_specs").select("*").eq("order_id", id).maybeSingle(),
     supabase
       .from("order_spec_accents")
       .select("position, shape, width_um, quantity, setting")
+      .eq("order_id", id)
+      .order("position"),
+    supabase
+      .from("order_reference_images")
+      .select("id, object_key, is_primary, position, order_reference_pins(x_bp, y_bp, label, position)")
       .eq("order_id", id)
       .order("position"),
   ]);
@@ -90,6 +110,30 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
   const frozen = !["DRAFT", "SUBMITTED"].includes(order.status);
   const isOwner = order.client_id === userId;
 
+  // Private bucket: each picture needs its own short-lived signed URL. Minted
+  // with the service role because the browser session has no storage grant —
+  // the ROW was already filtered by RLS, so this only signs what the viewer was
+  // allowed to see.
+  const admin = createAdminSupabaseClient();
+  const images: ReferenceImage[] = [];
+  for (const row of (imagesRes.data ?? []) as ImageRow[]) {
+    const { data: signed } = await admin.storage
+      .from(ORDER_FILES_BUCKET)
+      .createSignedUrl(row.object_key, REFERENCE_URL_TTL_SECONDS);
+    if (!signed?.signedUrl) continue;
+    images.push({
+      id: row.id,
+      signedUrl: signed.signedUrl,
+      isPrimary: row.is_primary,
+      pins: (row.order_reference_pins ?? [])
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((p): Pin => ({ xBp: p.x_bp, yBp: p.y_bp, label: p.label })),
+    });
+  }
+
+  const pinnedImageCount = images.filter((i) => i.pins.length > 0).length;
+
   const spec = specRes.data as SpecRow | null;
   const accents: AccentRow[] = ((accentsRes.data ?? []) as AccentDbRow[]).map((a) => ({
     shape: a.shape,
@@ -115,6 +159,8 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
           <BriefWizard
             orderId={id}
             readOnly={frozen}
+            referenceImageCount={images.length}
+            pinnedImageCount={pinnedImageCount}
             defaults={{
               referenceName: spec?.reference_name,
               product: spec?.product,
@@ -139,6 +185,8 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
           <ReadOnlyBrief spec={spec} accents={accents} />
         )}
       </div>
+
+      <ReferenceSection orderId={id} images={images} readOnly={frozen || !isOwner} />
     </main>
   );
 }

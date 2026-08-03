@@ -45,6 +45,8 @@ export {
 export type { Mesh, DecimateResult } from "./preview/decimate";
 export { fileGrantFor, grantExplanation } from "./files/downloadGate";
 export type { FileGrant, DownloadContext } from "./files/downloadGate";
+export { pinFromTap, pinStyle, pinProblems, crowdedPairs, BP_MAX } from "./orders/pins";
+export type { Pin } from "./orders/pins";
 export { gradeBrief, qualitySummary } from "./orders/briefQuality";
 export type { BriefQuality, BriefGap, BriefGrade, BriefContext, GapSeverity } from "./orders/briefQuality";
 export { ORDER_STATUS_META, statusMeta } from "./orders/status";

@@ -181,3 +181,32 @@ purpose it comes from.
 RLS (policies/0023) asks whether the ORDER is visible rather than restating the
 five conditions that decide it, so a brief follows its order's visibility
 automatically — including for rules that do not exist yet.
+
+## 0029 — reference images and pins
+
+Pictures attached to a brief, and labelled points on them.
+
+A client attaches three photos and writes "like this but with a thinner band".
+The designer does not know which photo is the shape, which is the setting, and
+which was only about the finish — so they choose, and half the time they choose
+wrong. That is the most common single cause of a first version coming back
+wrong, and it costs a revision cycle on both sides every time. A pin turns an
+ambiguous pile of images into instructions.
+
+**Coordinates are integer basis points (0–10000), not pixels and not floats.**
+Not pixels, because a pin is a position within the *image*, not within one
+rendering of it, and it has to land in the same place on a phone and on a
+designer's monitor. Not floats, for the reason no measurement here is one.
+
+`label` is `NOT NULL`: an unlabelled pin is a dot, and a dot is the ambiguity
+this table exists to remove.
+
+Exactly one picture per order is primary, enforced by a partial unique index.
+The first upload becomes primary automatically, and deleting the primary
+promotes the lowest-numbered survivor — an order whose references have no
+stated starting point is the pile of images again.
+
+Photographs are the richest source of identifying metadata in the system (EXIF
+carries GPS, camera serials, often an owner name). Every byte goes through the
+same sanitization gate as a deliverable, with metadata stripping required,
+before a row here exists.
