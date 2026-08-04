@@ -32,6 +32,19 @@ export {
   specIsComplete,
 } from "./orders/spec";
 export type { OrderSpecInput, SpecProblem } from "./orders/spec";
+export {
+  decimate,
+  decimateUntilSafe,
+  previewIsSafe,
+  bounds,
+  longestExtent,
+  DEFAULT_GRID_DIVISIONS,
+  MAX_PREVIEW_TRIANGLES,
+  MIN_REDUCTION_RATIO,
+} from "./preview/decimate";
+export type { Mesh, DecimateResult } from "./preview/decimate";
+export { fileGrantFor, grantExplanation } from "./files/downloadGate";
+export type { FileGrant, DownloadContext } from "./files/downloadGate";
 export { gradeBrief, qualitySummary } from "./orders/briefQuality";
 export type { BriefQuality, BriefGap, BriefGrade, BriefContext, GapSeverity } from "./orders/briefQuality";
 export { ORDER_STATUS_META, statusMeta } from "./orders/status";
