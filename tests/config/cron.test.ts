@@ -70,20 +70,37 @@ describe("cronRequestIsAuthorised", () => {
 });
 
 describe("the schedule", () => {
-  // The route exists to be called on a timer. A vercel.json that stopped
-  // pointing at it would leave notifications queued forever with nothing
-  // failing anywhere.
-  it("is wired to the push route in vercel.json", () => {
-    const config = JSON.parse(readFileSync(join(process.cwd(), "vercel.json"), "utf8"));
-    const paths = (config.crons ?? []).map((c: { path: string }) => c.path);
-    expect(paths).toContain("/api/cron/push");
+  const WORKFLOW = join(process.cwd(), ".github/workflows/push-dispatch.yml");
+
+  // The route exists to be called on a timer. If the scheduler stopped pointing
+  // at it, notifications would queue forever with nothing failing anywhere —
+  // the worst kind of break, because it is silent.
+  it("has a scheduled workflow that calls the push route", () => {
+    const yaml = readFileSync(WORKFLOW, "utf8");
+    expect(yaml).toContain("/api/cron/push");
+    expect(yaml).toMatch(/schedule:\s*\n\s*- cron:/);
   });
 
-  it("points only at routes that exist", () => {
-    const config = JSON.parse(readFileSync(join(process.cwd(), "vercel.json"), "utf8"));
-    for (const cron of config.crons ?? []) {
-      const file = join(process.cwd(), "app", cron.path, "route.ts");
-      expect(readFileSync(file, "utf8").length, `${cron.path} has no route`).toBeGreaterThan(0);
+  it("sends the secret from a repository secret, never a literal", () => {
+    const yaml = readFileSync(WORKFLOW, "utf8");
+    expect(yaml).toContain("secrets.CRON_SECRET");
+    // A bearer token spelled out in a workflow file is a public secret: this
+    // repository's Actions logs and file tree are readable by every
+    // collaborator, and the file itself may end up in a public fork.
+    expect(yaml).not.toMatch(/Bearer\s+[A-Za-z0-9]{16,}/);
+  });
+
+  // Vercel Hobby caps cron jobs at once per day and FAILS THE DEPLOYMENT on
+  // anything more frequent — which is what moved the scheduler to Actions. If a
+  // vercel.json with crons comes back, it has to be a deliberate choice made
+  // with a plan that supports it, not something that reappears by accident.
+  it("does not also schedule the same job on Vercel", () => {
+    let config: { crons?: unknown[] };
+    try {
+      config = JSON.parse(readFileSync(join(process.cwd(), "vercel.json"), "utf8"));
+    } catch {
+      return; // no vercel.json at all is the expected state
     }
+    expect(config.crons ?? []).toEqual([]);
   });
 });

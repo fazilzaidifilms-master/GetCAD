@@ -1,0 +1,75 @@
+name: Push dispatcher
+
+# Drains the notification queue by calling /api/cron/push.
+#
+# WHY NOT VERCEL CRON. Vercel's Hobby plan allows cron jobs to run at most ONCE
+# PER DAY, and a more frequent expression does not degrade — it fails the whole
+# deployment. A daily dispatcher is also useless here: `claim_push_notifications`
+# retires anything older than 24 hours rather than delivering it late, so most
+# notifications would expire before their one daily run. Rather than pay for a
+# plan to schedule one HTTP request, the scheduler lives here.
+#
+# THE TRADE. GitHub's minimum interval is five minutes, and scheduled workflows
+# are best-effort — under load they can fire late, and GitHub disables schedules
+# on a repository with no activity for 60 days. Neither matters much for this
+# job: a notification is a nudge, the app shows the same thing on next load, and
+# nothing is lost if a run is skipped — the next one claims the same rows.
+#
+# If this project moves to Vercel Pro, delete this file and put the schedule
+# back in vercel.json as `{"crons":[{"path":"/api/cron/push","schedule":"* * * * *"}]}`.
+#
+# SETUP: repository → Settings → Secrets and variables → Actions
+#   - Secret   CRON_SECRET   same value as the Vercel environment variable
+#   - Variable APP_URL       optional; defaults to the production domain below
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  # So it can be triggered by hand from the Actions tab when testing, without
+  # waiting for the next slot.
+  workflow_dispatch:
+
+concurrency:
+  # A slow run must not overlap the next tick. Harmless if it did — the claim
+  # uses SKIP LOCKED — but queueing them up would hide a genuinely stuck run.
+  group: push-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Drain the notification queue
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://thecadpillar.com' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set on this repository. The endpoint answers"
+            echo "404 without it, so notifications will queue and never deliver."
+            exit 1
+          fi
+
+          # -sS: quiet, but still print a real error. The body is echoed because
+          # the route reports what it did (claimed / sent / expired / failed),
+          # which is the only place that is visible.
+          status=$(curl -sS -o /tmp/push-response -w '%{http_code}' \
+            --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL}/api/cron/push")
+
+          echo "HTTP ${status}"
+          cat /tmp/push-response
+          echo
+
+          # A 404 here means the secret did not match — the route answers 404
+          # rather than 401 so a stranger cannot tell a secret is what stands in
+          # their way. Worth calling out, because "404" otherwise reads as a
+          # missing route.
+          if [ "$status" = "404" ]; then
+            echo "::error::404 from /api/cron/push — the CRON_SECRET here does not match the one deployed to Vercel."
+            exit 1
+          fi
+
+          test "$status" = "200"

@@ -116,12 +116,27 @@ password manager, never in the repo.
   ```
   🔎 Without it, `/api/cron/push` answers **404 to everyone** — closed, not open.
   Notifications will queue and never be delivered to a device.
-- ☐ `vercel.json` already schedules `/api/cron/push` every minute.
-  ⚠️ Vercel's **Hobby** plan caps crons at one run per day, which would batch a
-  day of notifications into one delivery — and the queue retires anything older
-  than 24 hours, so some would never be sent at all. Minute-level scheduling
-  needs **Pro**, or point any external scheduler at the same URL with the same
-  bearer token.
+- ☐ Add the same `CRON_SECRET` as a **GitHub repository secret**: repo →
+  Settings → Secrets and variables → Actions → **New repository secret**, name
+  `CRON_SECRET`.
+  🔎 `.github/workflows/push-dispatch.yml` calls `/api/cron/push` every five
+  minutes using it. Trigger it by hand once (Actions tab → *Push dispatcher* →
+  *Run workflow*) and check the run is green — the step prints what the route
+  did.
+  ⚠️ A **404** from that step means the secret in GitHub does not match the one
+  in Vercel. The route answers 404 rather than 401 on purpose, so it does not
+  confirm to a stranger that a secret is what stands in their way.
+  ⚠️ **Why not Vercel Cron.** Vercel's Hobby plan caps cron jobs at **once per
+  day** and *fails the deployment* on anything more frequent. A daily run would
+  also be useless: the queue retires notifications older than 24 hours instead
+  of delivering them late, so most would expire unsent. On **Pro**, per-minute
+  cron works — delete the workflow and put this in `vercel.json` instead:
+  ```json
+  { "crons": [{ "path": "/api/cron/push", "schedule": "* * * * *" }] }
+  ```
+  ⚠️ GitHub disables scheduled workflows on a repository with no activity for 60
+  days. If notifications quietly stop arriving months from now, check the
+  Actions tab first.
   > Push is optional to *deploy*: with no keys the app runs normally and
   > notifications appear in-app, just not on anyone's phone.
 
