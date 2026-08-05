@@ -22,12 +22,13 @@ async function asUser<T>(sub: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-async function addVersion(sub: string, objectKey: string) {
+async function addVersion(sub: string, objectKey: string, kind = "RENDER") {
   return asUser(sub, () =>
-    db.query("SELECT public.add_file_version($1,$2,$3,'application/pdf',1024) AS id", [
+    db.query("SELECT public.add_file_version($1,$2,$3,'application/pdf',1024,$4) AS id", [
       generateId(),
       order,
       objectKey,
+      kind,
     ]),
   );
 }
@@ -77,13 +78,59 @@ describe("Test Q — file versions (audited, versioned, RLS-gated)", () => {
     expect(a.rows).toHaveLength(1);
   });
 
-  it("the client can add the next version; version_no increments; pointer moves", async () => {
-    const res = await addVersion(clientU, "objkey_2");
+  it("the client attaches reference material; version_no increments", async () => {
+    const res = await addVersion(clientU, "objkey_2", "CLIENT_REFERENCE");
     const vid = res.rows[0].id as string;
-    const fv = await db.query("SELECT version_no FROM file_versions WHERE id = $1", [vid]);
+    const fv = await db.query("SELECT version_no, kind FROM file_versions WHERE id = $1", [vid]);
     expect(fv.rows[0].version_no).toBe(2);
+    expect(fv.rows[0].kind).toBe("CLIENT_REFERENCE");
+  });
+
+  // current_version_id means "the work as it currently stands". A client
+  // attaching a PDF mid-job must not redefine what the designer submitted.
+  it("a client's attachment does not move the order's current version", async () => {
     const o = await db.query("SELECT current_version_id FROM orders WHERE id = $1", [order]);
-    expect(o.rows[0].current_version_id).toBe(vid);
+    const current = await db.query("SELECT uploaded_by FROM file_versions WHERE id = $1", [
+      o.rows[0].current_version_id,
+    ]);
+    expect(current.rows[0].uploaded_by).toBe(designerU);
+  });
+
+  // The whole point of kinds: a client who could post 'STL' would be writing
+  // into the set the download gate releases only after approval.
+  it("refuses to let a client label their upload as a deliverable", async () => {
+    await expect(addVersion(clientU, "objkey_forged", "STL")).rejects.toThrow(
+      /only attach reference material/i,
+    );
+    await expect(addVersion(clientU, "objkey_forged2", "RENDER")).rejects.toThrow(
+      /only attach reference material/i,
+    );
+  });
+
+  // And the mirror: a designer marking a deliverable as the client's own
+  // material would hand it over early, since a client always gets that back.
+  it("refuses to let a designer claim the client's reference kind", async () => {
+    await expect(addVersion(designerU, "objkey_forged3", "CLIENT_REFERENCE")).rejects.toThrow(
+      /client's own material/i,
+    );
+  });
+
+  it("rejects a kind the enum does not have", async () => {
+    await expect(addVersion(designerU, "objkey_bogus", "SECRET_SAUCE")).rejects.toThrow();
+  });
+
+  // The un-kinded five-argument writer is dropped, not overloaded: leaving it
+  // callable leaves a path that writes 'OTHER' by omission.
+  it("no longer exposes a way to add a version without saying what it is", async () => {
+    await expect(
+      asUser(designerU, () =>
+        db.query("SELECT public.add_file_version($1,$2,$3,'application/pdf',1024) AS id", [
+          generateId(),
+          order,
+          "objkey_unkinded",
+        ]),
+      ),
+    ).rejects.toThrow(/does not exist/i);
   });
 
   it("a non-participant cannot add a version", async () => {

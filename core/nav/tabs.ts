@@ -55,6 +55,12 @@ const CLIENT_TABS: Tab[] = [
 const DESIGNER_TABS: Tab[] = [
   { key: "home", label: "Home", href: "/dashboard", icon: "home" },
   { key: "orders", label: "My work", href: "/orders", icon: "work" },
+  // Restoring a link that scoping navigation by role accidentally dropped.
+  // Before that change the header showed every destination to everyone, which
+  // is how this one was reachable at all. Onboarding is where a designer signs
+  // the agreement, and an unsigned designer cannot be assigned work — so an
+  // unreachable page here is a designer who can never start.
+  { key: "onboarding", label: "Onboarding", href: "/onboarding/designer", icon: "work" },
   ACCOUNT,
 ];
 

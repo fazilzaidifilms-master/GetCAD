@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { generateId, sanitizeUpload } from "@/core";
+import { generateId, sanitizeUpload, RELEASE_KINDS, REVIEW_KINDS, type FileKind } from "@/core";
 import { ORDER_FILES_BUCKET } from "@/config/supabase";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
@@ -13,8 +13,26 @@ import { createUserSupabaseClient } from "@/lib/supabase/server";
  * trusted); the version is recorded AS THE USER so the participant check +
  * audit run under their identity.
  */
+/**
+ * Kinds a form is allowed to name.
+ *
+ * A Server Action receives whatever the caller posts, so the `kind` field is
+ * input, not a choice made by the select box. An unrecognised value must not
+ * reach the database as text; and defaulting a bad one to something in the
+ * review set would let a crafted post put a deliverable where the client can
+ * download it before approving. OTHER is the safe fallback because the gate
+ * withholds it.
+ */
+const ACCEPTED_KINDS = new Set<string>([...REVIEW_KINDS, ...RELEASE_KINDS, "CLIENT_REFERENCE"]);
+
+function readKind(formData: FormData): FileKind {
+  const raw = formData.get("kind")?.toString() ?? "";
+  return ACCEPTED_KINDS.has(raw) ? (raw as FileKind) : "OTHER";
+}
+
 export async function uploadFileAction(formData: FormData): Promise<void> {
   const orderId = formData.get("order_id")?.toString() ?? "";
+  const kind = readKind(formData);
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("no file provided");
@@ -57,6 +75,9 @@ export async function uploadFileAction(formData: FormData): Promise<void> {
     p_object_key: objectKey,
     p_content_type: gate.file.contentType,
     p_size_bytes: gate.file.sizeBytes,
+    // The database has the last word on whether this party may claim this kind
+    // — a client cannot post 'STL' and have it land in the release set.
+    p_kind: kind,
   });
   if (error) {
     // Not a participant (or other failure) — remove the orphaned object.

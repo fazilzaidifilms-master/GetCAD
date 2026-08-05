@@ -48,8 +48,22 @@ describe("tabsForRole", () => {
     expect(hrefs("DESIGNER")).not.toContain("/orders/new");
   });
 
+  // A designer who cannot reach onboarding cannot sign the agreement, and an
+  // unsigned designer can never be assigned work. This was reachable before
+  // navigation was scoped by role, and briefly was not afterwards.
+  it("gives a designer a way to reach onboarding", () => {
+    expect(hrefs("DESIGNER")).toContain("/onboarding/designer");
+  });
+
   it("offers no tab that is not a real route", () => {
-    const known = new Set(["/dashboard", "/orders", "/orders/new", "/admin", "/account"]);
+    const known = new Set([
+      "/dashboard",
+      "/orders",
+      "/orders/new",
+      "/onboarding/designer",
+      "/admin",
+      "/account",
+    ]);
     for (const role of ["CLIENT", "DESIGNER", "OPS"]) {
       for (const href of hrefs(role)) expect(known.has(href)).toBe(true);
     }

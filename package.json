@@ -29,7 +29,6 @@
     "@clerk/nextjs": "^6.39.5",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.108.2",
-    "@types/three": "^0.185.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "geist": "^1.7.2",
@@ -41,7 +40,6 @@
     "react-hook-form": "^7.81.0",
     "rhino3dm": "^8.32.1",
     "tailwind-merge": "^2.6.0",
-    "three": "^0.185.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
