@@ -54,9 +54,28 @@ export const viewport: Viewport = {
 // the authenticated product each provide their own header/nav via a nested
 // layout in their respective route group — this root never renders chrome
 // specific to either, keeping the two structurally isolated.
+/**
+ * `signInUrl` / `signUpUrl` / `afterSignOutUrl` are what keep authentication on
+ * THIS origin.
+ *
+ * Unset, Clerk sends an unauthenticated visitor to its hosted Account Portal —
+ * `accounts.<your-domain>` or `<slug>.accounts.dev` — which is a different
+ * origin. In a browser that is merely a detour. In the installed app it is a
+ * loop that never ends:
+ *
+ *   - the manifest's `scope` is this origin, so the portal is OUTSIDE the app;
+ *   - an iOS home-screen app has a storage container SEPARATE from Safari, so
+ *     the install starts signed out even when Safari is signed in;
+ *   - the portal hands the session back across origins, the container does not
+ *     keep it, and /dashboard redirects out again.
+ *
+ * The symptom is an app that opens to a spinner and reloads forever, with no
+ * error anywhere. Pointing these at our own routes keeps every step inside the
+ * installed app, where the cookie it sets is the cookie the next request reads.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up" afterSignOutUrl="/">
       <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
         <body className="min-h-screen bg-background font-sans text-foreground antialiased">
           {children}

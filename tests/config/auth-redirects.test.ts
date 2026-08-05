@@ -90,3 +90,58 @@ describe("the marketing header", () => {
     expect(header).toContain("/sign-up");
   });
 });
+
+/**
+ * Authentication has to stay on this origin, or the installed app cannot
+ * complete it.
+ *
+ * Unset, Clerk redirects an unauthenticated visitor to its hosted Account
+ * Portal — `accounts.<domain>` or `<slug>.accounts.dev`. A browser follows that
+ * without complaint. The installed PWA cannot: the portal is outside the
+ * manifest's `scope`, and on iOS a home-screen app has a storage container
+ * separate from Safari's, so the session established over there is not the
+ * session read back here. /dashboard redirects out, comes back without a
+ * session, and redirects out again — an app that opens to a spinner and never
+ * finishes, with no error anywhere to explain it.
+ *
+ * Both places have to be set and they do different jobs: the middleware option
+ * decides where `auth.protect()` sends people, the provider prop decides where
+ * links inside Clerk's own components point.
+ */
+describe("authentication stays on this origin", () => {
+  const IN_ORIGIN = /^\/[a-z-]/;
+
+  it("routes auth.protect() to our own sign-in page, not Clerk's portal", () => {
+    const middleware = read("middleware.ts");
+    expect(middleware).toMatch(/signInUrl:\s*"(\/[^"]+)"/);
+    expect(middleware).toMatch(/signUpUrl:\s*"(\/[^"]+)"/);
+    const signIn = /signInUrl:\s*"([^"]+)"/.exec(middleware)?.[1] ?? "";
+    expect(signIn, "must be a path on this origin, not an absolute URL").toMatch(IN_ORIGIN);
+  });
+
+  it("points Clerk's own components at our routes too", () => {
+    const layout = read("app/layout.tsx");
+    expect(layout).toMatch(/signInUrl="(\/[^"]+)"/);
+    expect(layout).toMatch(/signUpUrl="(\/[^"]+)"/);
+  });
+
+  // Sign-out defaults to the portal as well, which ejects someone out of the
+  // installed app at the exact moment they have no session to get back in with.
+  it("returns to this origin after signing out", () => {
+    const layout = read("app/layout.tsx");
+    expect(layout).toMatch(/afterSignOutUrl="(\/[^"]*)"/);
+  });
+
+  it("names sign-in routes that actually exist", () => {
+    expect(read("app/(app)/sign-in/[[...sign-in]]/page.tsx")).toContain("SignIn");
+    expect(read("app/(app)/sign-up/[[...sign-up]]/page.tsx")).toContain("SignUp");
+  });
+
+  // The installed app launches straight into start_url. If that were behind
+  // auth AND the sign-in page were unreachable in-origin, the first launch
+  // after install would be the loop this whole block exists to prevent.
+  it("can reach sign-in without being signed in", () => {
+    expect(isProtectedPath("/sign-in")).toBe(false);
+    expect(isProtectedPath("/sign-up")).toBe(false);
+  });
+});
