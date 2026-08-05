@@ -33,18 +33,12 @@ export {
 } from "./orders/spec";
 export type { OrderSpecInput, SpecProblem } from "./orders/spec";
 export {
-  decimate,
-  decimateUntilSafe,
-  previewIsSafe,
-  bounds,
-  longestExtent,
-  DEFAULT_GRID_DIVISIONS,
-  MAX_PREVIEW_TRIANGLES,
-  MIN_REDUCTION_RATIO,
-} from "./preview/decimate";
-export type { Mesh, DecimateResult } from "./preview/decimate";
-export { fileGrantFor, grantExplanation } from "./files/downloadGate";
-export type { FileGrant, DownloadContext } from "./files/downloadGate";
+  fileGrantFor,
+  grantExplanation,
+  REVIEW_KINDS,
+  RELEASE_KINDS,
+} from "./files/downloadGate";
+export type { FileGrant, FileKind, DownloadContext } from "./files/downloadGate";
 export { pinFromTap, pinStyle, pinProblems, crowdedPairs, BP_MAX } from "./orders/pins";
 export type { Pin } from "./orders/pins";
 export { gradeBrief, qualitySummary } from "./orders/briefQuality";

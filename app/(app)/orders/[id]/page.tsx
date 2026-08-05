@@ -57,7 +57,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       supabase.from("order_transitions").select("from_status, to_status, actor_role, actor_scope"),
       supabase
         .from("file_versions")
-        .select("id, order_id, version_no, content_type, size_bytes")
+        .select("id, order_id, version_no, content_type, size_bytes, kind, uploaded_by")
         .eq("order_id", id)
         .order("version_no", { ascending: false }),
       supabase.from("escrow_ledger").select("order_id, kind, amount").eq("order_id", id),

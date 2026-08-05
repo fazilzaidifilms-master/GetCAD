@@ -1,4 +1,4 @@
-import type { EscrowKind } from "@/core";
+import type { EscrowKind, FileKind } from "@/core";
 
 export interface OrderRow {
   id: string;
@@ -19,6 +19,10 @@ export interface VersionRow {
   version_no: number;
   content_type: string;
   size_bytes: number;
+  /** What this file is. Drives the download gate — see core/files/downloadGate. */
+  kind: FileKind;
+  /** Opaque; only used to decide "this is your own upload". Never displayed. */
+  uploaded_by: string;
 }
 
 export interface LedgerRow {

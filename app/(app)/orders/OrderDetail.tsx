@@ -1,4 +1,11 @@
-import { availableTransitions, type TimelineRawRow, type TransitionRow } from "@/core";
+import {
+  availableTransitions,
+  fileGrantFor,
+  grantExplanation,
+  type FileKind,
+  type TimelineRawRow,
+  type TransitionRow,
+} from "@/core";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +29,35 @@ import { PayoutPanel, type PayoutStateSummary } from "./PayoutPanel";
 import type { DisputeRow, MessageRow, OrderRow, VersionRow } from "./types";
 
 const HIDDEN_TARGETS = new Set(["QUOTED", "PAYMENT_HELD", "PAYOUT_RELEASED", "REFUNDED", "DISPUTED"]);
+
+/**
+ * How each kind is named to a human.
+ *
+ * The list used to show content types — "model/stl", "image/png" — which told
+ * the reader what a file was made of and nothing about what it was for. On a
+ * delivery of six or more artefacts that is unreadable.
+ */
+const FILE_KIND_LABELS: Record<string, string> = {
+  CLIENT_REFERENCE: "Your reference material",
+  RENDER: "Render",
+  WEIGHT_CHART: "Gold weight chart",
+  DIAMOND_DETAILS: "Diamond details",
+  STL: "STL",
+  RHINO_3DM: "Rhino 3DM",
+  SUMMARY_SHEET: "Order summary sheet",
+  OTHER: "File",
+};
+
+/** What a designer or staff member can be uploading, in delivery order. */
+const UPLOADABLE_KINDS: FileKind[] = [
+  "RENDER",
+  "WEIGHT_CHART",
+  "DIAMOND_DETAILS",
+  "STL",
+  "RHINO_3DM",
+  "SUMMARY_SHEET",
+  "OTHER",
+];
 
 function Panel({
   title,
@@ -70,6 +106,28 @@ export function OrderDetail({
 }) {
   const isOrderClient = o.client_id === userId;
   const isParticipant = isOrderClient || o.designer_id === userId;
+
+  // The SAME function the download route calls, so the list and the API cannot
+  // disagree: a row offered here is a row that will actually serve, and a row
+  // the API would refuse is never shown as a link. NONE rows are dropped
+  // entirely — for those viewers the file's existence is itself the secret.
+  const visibleFiles = versions
+    .map((version) => {
+      const grant = fileGrantFor({
+        orderStatus: o.status,
+        role,
+        isOrderClient,
+        isOrderDesigner: o.designer_id === userId,
+        isUploader: version.uploaded_by === userId,
+        fileKind: version.kind,
+      });
+      return {
+        version,
+        grant,
+        explanation: grantExplanation(grant, { orderStatus: o.status, fileKind: version.kind }),
+      };
+    })
+    .filter((f) => f.grant !== "NONE");
   const allActions = availableTransitions(o.status, transitions, {
     role,
     isOrderClient,
@@ -327,28 +385,48 @@ export function OrderDetail({
       )}
 
       {/* Files */}
-      {(versions.length > 0 || isParticipant) && (
+      {(visibleFiles.length > 0 || isParticipant) && (
         <Panel title="Files">
           <ul className="divide-y divide-border">
-            {versions.length === 0 && (
+            {visibleFiles.length === 0 && (
               <li className="py-2 text-sm text-muted-foreground">No files yet.</li>
             )}
-            {versions.map((v) => (
-              <li key={v.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="flex items-center gap-2">
-                  <span className="tabular font-mono text-xs text-muted-foreground">v{v.version_no}</span>
-                  <span className="text-muted-foreground">{v.content_type}</span>
+            {visibleFiles.map(({ version: v, grant, explanation }) => (
+              <li key={v.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <span className="flex min-w-0 flex-col">
+                  <span className="flex items-center gap-2">
+                    <span className="tabular font-mono text-xs text-muted-foreground">
+                      v{v.version_no}
+                    </span>
+                    <span>{FILE_KIND_LABELS[v.kind] ?? v.kind}</span>
+                  </span>
+                  {explanation && (
+                    <span className="mt-0.5 text-xs text-muted-foreground">{explanation}</span>
+                  )}
                 </span>
-                <a href={`/api/files/${v.id}`} className="text-sm text-primary hover:underline">
-                  Download
-                </a>
+                {grant === "ALLOW" ? (
+                  <a
+                    href={`/api/files/${v.id}`}
+                    className="shrink-0 text-sm text-primary hover:underline"
+                  >
+                    Download
+                  </a>
+                ) : (
+                  // Named, but not a link. The row is here so the client can see
+                  // the work exists and what it is; the sentence above says what
+                  // unlocks it. The API returns 404 for this row either way —
+                  // this is presentation, not enforcement.
+                  <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
+                    Held
+                  </span>
+                )}
               </li>
             ))}
           </ul>
           {isParticipant && (
             <form action={uploadFileAction} className="mt-3">
               <input type="hidden" name="order_id" value={o.id} />
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <input
                   type="file"
                   name="file"
@@ -357,6 +435,26 @@ export function OrderDetail({
                   aria-label="Upload a file"
                   className="text-sm"
                 />
+                {/* What this file IS decides who can download it and when, so it
+                    is asked for at upload time rather than guessed from the
+                    extension afterwards. A client has one legitimate answer, so
+                    they are not asked at all. */}
+                {isOrderClient ? (
+                  <input type="hidden" name="kind" value="CLIENT_REFERENCE" />
+                ) : (
+                  <select
+                    name="kind"
+                    defaultValue="RENDER"
+                    aria-label="What this file is"
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    {UPLOADABLE_KINDS.map((k) => (
+                      <option key={k} value={k}>
+                        {FILE_KIND_LABELS[k]}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <Button type="submit" variant="outline" size="sm">
                   Upload
                 </Button>
