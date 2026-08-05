@@ -20,13 +20,30 @@ const RULES = [
 // This scanner file legitimately contains the patterns above; don't scan it.
 const SELF = "scripts/secret-scan.mjs";
 
-function trackedFiles() {
-  const out = execSync("git ls-files", { encoding: "utf8" });
+/**
+ * Every file git would consider part of the repo — committed, staged, AND
+ * untracked-but-not-ignored.
+ *
+ * `git ls-files` alone lists only what is already tracked, which means a brand
+ * new file is invisible to this scanner until the moment it is committed. That
+ * is precisely backwards: the run you want to catch a secret on is the one
+ * BEFORE it enters history. It is also how a secret-shaped constant in a new
+ * test file passed a local `npm run ci` and then failed in CI, where the file
+ * had by then been committed.
+ *
+ * `--exclude-standard` keeps .gitignore honoured, so .env.local and node_modules
+ * stay out — scanning those would report a secret every single run, and a
+ * scanner that always cries wolf is one people learn to ignore.
+ */
+function scannableFiles() {
+  const out = execSync("git ls-files --cached --others --exclude-standard", {
+    encoding: "utf8",
+  });
   return out.split("\n").map((s) => s.trim()).filter(Boolean);
 }
 
 let findings = 0;
-for (const file of trackedFiles()) {
+for (const file of scannableFiles()) {
   if (file === SELF) continue;
   let content;
   try {

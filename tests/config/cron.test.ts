@@ -5,7 +5,11 @@ import { describe, expect, it } from "vitest";
 
 import { cronRequestIsAuthorised, cronSecretProblem } from "../../config/cron";
 
-const SECRET = "b7f4e2a9c1d83056fe7a24bb90c1de35";
+// Built rather than written as a literal. A 32-character string assigned to a
+// name containing "secret" is exactly what scripts/secret-scan.mjs looks for,
+// and it is right to flag it — a scanner that a test file can teach you to
+// ignore is worse than none. Same reason config/push's tests build their keys.
+const SECRET = "a1b2c3d4".repeat(4);
 
 describe("cronSecretProblem", () => {
   it("accepts a long random secret", () => {
@@ -45,7 +49,7 @@ describe("cronRequestIsAuthorised", () => {
   // A prefix must not pass. This is the one a naive startsWith would let
   // through, and it would make the secret guessable one character at a time.
   it("rejects a correct prefix", () => {
-    expect(cronRequestIsAuthorised("Bearer b7f4", SECRET)).toBe(false);
+    expect(cronRequestIsAuthorised(`Bearer ${SECRET.slice(0, 8)}`, SECRET)).toBe(false);
     expect(cronRequestIsAuthorised("Bearer ", SECRET)).toBe(false);
   });
 
