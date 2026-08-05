@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { webhookSecretProblem } from "@/config/payments";
+import { pushConfigProblems } from "@/config/push";
 
 /**
  * Deployment health check.
@@ -23,13 +24,16 @@ const GROUPS: Record<string, readonly string[]> = {
   storage: ["SUPABASE_SERVICE_ROLE_KEY"],
   payments: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"],
   email: ["RESEND_API_KEY", "EMAIL_FROM"],
+  push: ["NEXT_PUBLIC_VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"],
   seo: ["NEXT_PUBLIC_SITE_URL"],
 };
 
 /**
  * Groups without which the platform cannot do its job. `seo` is cosmetic, and
- * `email` is deliberately optional — the outbox holds acknowledgements until a
- * provider is configured, so an unconfigured mailer degrades rather than breaks.
+ * `email` and `push` are deliberately optional — the outbox holds
+ * acknowledgements until a provider is configured, and notifications still
+ * appear inside the app when no VAPID keys are set. Both degrade rather than
+ * break.
  */
 const REQUIRED = ["auth", "database", "storage", "payments"] as const;
 
@@ -53,6 +57,13 @@ export function GET(): NextResponse {
     : null;
   if (secretProblem) groups.payments = false;
 
+  // Same shape of failure, different feature. Push keeps WORKING with the
+  // private key pasted into NEXT_PUBLIC_VAPID_PUBLIC_KEY — it is simply also in
+  // the browser bundle of a public site. Nothing else in the system would ever
+  // report that, so it is reported here.
+  const pushProblems = groups.push ? pushConfigProblems() : [];
+  if (pushProblems.length > 0) groups.push = false;
+
   const ready = REQUIRED.every((g) => groups[g]);
 
   return NextResponse.json(
@@ -67,6 +78,7 @@ export function GET(): NextResponse {
       // Safe to state: it describes the SHAPE of a misconfiguration, never a
       // value, and an attacker able to exploit it already knows.
       warning: secretProblem ?? undefined,
+      pushWarnings: pushProblems.length > 0 ? pushProblems : undefined,
     },
     { status: ready ? 200 : 503 },
   );

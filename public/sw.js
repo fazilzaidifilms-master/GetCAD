@@ -120,3 +120,85 @@ self.addEventListener("fetch", (event) => {
 
   // Everything else: left alone, straight to the network.
 });
+
+/*
+ * ------------------------------------------------------------------ push --
+ *
+ * The payload arrives already decrypted by the browser and was built by
+ * core/notifications/push — fixed wording, no names, no amounts. This handler
+ * deliberately does no formatting of its own: anything it composed here would
+ * be a second place where lock-screen text is decided, and the anonymity tests
+ * only cover the first.
+ */
+self.addEventListener("push", (event) => {
+  // A push with no data is a "wake up and check" ping from some services. We
+  // have nothing to show for it, and showing a generic placeholder would be a
+  // notification that tells the user nothing.
+  if (!event.data) return;
+
+  let message;
+  try {
+    message = event.data.json();
+  } catch {
+    return;
+  }
+  if (!message || typeof message.title !== "string" || typeof message.body !== "string") return;
+
+  event.waitUntil(
+    self.registration.showNotification(message.title, {
+      body: message.body,
+      // Tag collapses repeats of the same event on the same order into one
+      // entry rather than a stack of six during a delivery.
+      tag: typeof message.tag === "string" ? message.tag : undefined,
+      // Replacing a notification must not buzz again — the user has already
+      // been told; this is an update to what they were told.
+      renotify: false,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: typeof message.url === "string" ? message.url : "/dashboard" },
+    }),
+  );
+});
+
+/*
+ * A tap should land on the thing the notification is about, in a window that is
+ * already open if there is one. Opening a second copy of an installed app is
+ * disorienting, and on desktop it leaves the user with two windows showing the
+ * same order.
+ */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/dashboard";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        // Same-origin check: matchAll can return windows from the whole origin,
+        // and navigating an arbitrary one would yank the user out of whatever
+        // they were doing in another tab.
+        if (new URL(client.url).origin !== self.location.origin) continue;
+        if ("focus" in client) {
+          return client.navigate ? client.navigate(target).then((c) => c && c.focus()) : client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});
+
+/*
+ * Push services rotate subscriptions. When that happens the old endpoint stops
+ * working and the browser fires this event — without it, notifications simply
+ * stop arriving one day and nothing anywhere reports why.
+ *
+ * The re-registration is posted to the page rather than sent from here, because
+ * the endpoint has to be written to the database as the signed-in user and this
+ * worker has no session.
+ */
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) client.postMessage({ type: "PUSH_SUBSCRIPTION_CHANGED" });
+    }),
+  );
+});

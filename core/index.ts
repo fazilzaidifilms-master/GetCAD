@@ -41,6 +41,8 @@ export {
 export type { FileGrant, FileKind, DownloadContext } from "./files/downloadGate";
 export { pinFromTap, pinStyle, pinProblems, crowdedPairs, BP_MAX } from "./orders/pins";
 export type { Pin } from "./orders/pins";
+export { pushMessageFor, isNotificationKind, NOTIFICATION_KINDS } from "./notifications/push";
+export type { PushMessage, NotificationKind } from "./notifications/push";
 export { gradeBrief, qualitySummary } from "./orders/briefQuality";
 export type { BriefQuality, BriefGap, BriefGrade, BriefContext, GapSeverity } from "./orders/briefQuality";
 export { ORDER_STATUS_META, statusMeta } from "./orders/status";

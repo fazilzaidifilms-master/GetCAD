@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 
 import { partyLabel } from "@/components/domain";
 import { InstallHint } from "@/components/pwa/install-hint";
+import { PushOptIn } from "@/components/pwa/push-opt-in";
 import { Button } from "@/components/ui/button";
+import { pushIsConfiguredForBrowser } from "@/config/push";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -35,6 +37,11 @@ export default async function AccountPage() {
   const role: string = data?.role ?? "CLIENT";
   const status: string = data?.status ?? "PENDING";
 
+  // Read here rather than in the client component: an unconfigured deployment
+  // should show nothing at all, not a button that fails when pressed.
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+  const pushOffered = pushIsConfiguredForBrowser(vapidPublicKey);
+
   return (
     <main className="container max-w-2xl py-8">
       <h1 className="text-[length:var(--fs-6)] font-semibold leading-[var(--lh-6)] tracking-[var(--ls-6)]">
@@ -53,6 +60,12 @@ export default async function AccountPage() {
       </dl>
 
       <InstallHint />
+
+      {pushOffered ? (
+        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card p-4">
+          <PushOptIn publicKey={vapidPublicKey} />
+        </div>
+      ) : null}
 
       {role === "DESIGNER" ? (
         <div className="mt-4">

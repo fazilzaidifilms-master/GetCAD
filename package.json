@@ -23,7 +23,8 @@
     "verify:payout": "node scripts/verify-payout.mjs",
     "payouts:link": "node scripts/link-payout-account.mjs",
     "send-emails": "npx tsx scripts/send-emails.mjs",
-    "verify:delivery": "node scripts/verify-webhook-delivery.mjs"
+    "verify:delivery": "node scripts/verify-webhook-delivery.mjs",
+    "send-push": "npx tsx scripts/send-push.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.5",
@@ -40,6 +41,7 @@
     "react-hook-form": "^7.81.0",
     "rhino3dm": "^8.32.1",
     "tailwind-merge": "^2.6.0",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -47,6 +49,7 @@
     "@types/pg": "^8.11.10",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.3.0",
