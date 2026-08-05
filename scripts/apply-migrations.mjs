@@ -6,8 +6,15 @@
 // the old behaviour and it aborted on the first `CREATE TABLE`/`CREATE TYPE`
 // that already existed, making the script unusable against any live database.)
 //
+// Reads .env.local automatically, like the other operational scripts, so the
+// connection string does not have to be typed onto a command line — where it
+// lands in shell history and, on a shared screen, in front of whoever is
+// looking. An explicitly-set DATABASE_URL still wins, so a one-off run against
+// a different database works the way it always did.
+//
 // Usage:
-//   DATABASE_URL=postgres://user:pass@host:5432/db node scripts/apply-migrations.mjs
+//   npm run db:apply                      # uses .env.local
+//   DATABASE_URL=postgres://... node scripts/apply-migrations.mjs   # override
 //   ... --status     Show applied vs pending, change nothing.
 //   ... --baseline   Record every current file as applied WITHOUT running it.
 //                    Use this ONCE to adopt a database that already has the
@@ -21,9 +28,29 @@ import pg from "pg";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
 
+function loadEnvLocal() {
+  try {
+    const text = readFileSync(join(repoRoot, ".env.local"), "utf8");
+    for (const line of text.split("\n")) {
+      const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/.exec(line);
+      if (!m) continue;
+      const value = m[2].trim().replace(/^["']|["']$/g, "");
+      // An already-exported value wins, so an explicit one-off override still
+      // works and this can never silently redirect a deliberate run.
+      if (value && !process.env[m[1]]) process.env[m[1]] = value;
+    }
+  } catch {
+    // No .env.local — use whatever is already exported.
+  }
+}
+loadEnvLocal();
+
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
-  console.error("DATABASE_URL is not set.");
+  console.error(
+    "DATABASE_URL is not set. Put it in .env.local, or pass it inline:\n" +
+      "  DATABASE_URL=postgres://... npm run db:apply",
+  );
   process.exit(1);
 }
 

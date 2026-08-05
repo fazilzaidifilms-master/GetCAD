@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { webhookSecretProblem } from "@/config/payments";
+import { cronSecretProblem } from "@/config/cron";
 import { pushConfigProblems } from "@/config/push";
 
 /**
@@ -25,15 +26,17 @@ const GROUPS: Record<string, readonly string[]> = {
   payments: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"],
   email: ["RESEND_API_KEY", "EMAIL_FROM"],
   push: ["NEXT_PUBLIC_VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"],
+  cron: ["CRON_SECRET"],
   seo: ["NEXT_PUBLIC_SITE_URL"],
 };
 
 /**
  * Groups without which the platform cannot do its job. `seo` is cosmetic, and
- * `email` and `push` are deliberately optional — the outbox holds
+ * `email`, `push` and `cron` are deliberately optional — the outbox holds
  * acknowledgements until a provider is configured, and notifications still
- * appear inside the app when no VAPID keys are set. Both degrade rather than
- * break.
+ * appear inside the app when no VAPID keys are set. All three degrade rather
+ * than break. Note that `cron: false` means scheduled jobs are REFUSED, not
+ * that they run unauthenticated.
  */
 const REQUIRED = ["auth", "database", "storage", "payments"] as const;
 
@@ -64,6 +67,11 @@ export function GET(): NextResponse {
   const pushProblems = groups.push ? pushConfigProblems() : [];
   if (pushProblems.length > 0) groups.push = false;
 
+  // A cron secret that is set but weak is the same class of problem: the
+  // scheduled job runs fine, and so does anyone else's call to it.
+  const cronProblem = cronSecretProblem(process.env.CRON_SECRET);
+  if (cronProblem) groups.cron = false;
+
   const ready = REQUIRED.every((g) => groups[g]);
 
   return NextResponse.json(
@@ -78,7 +86,10 @@ export function GET(): NextResponse {
       // Safe to state: it describes the SHAPE of a misconfiguration, never a
       // value, and an attacker able to exploit it already knows.
       warning: secretProblem ?? undefined,
-      pushWarnings: pushProblems.length > 0 ? pushProblems : undefined,
+      pushWarnings:
+        pushProblems.length > 0 || cronProblem
+          ? [...pushProblems, ...(cronProblem ? [cronProblem] : [])]
+          : undefined,
     },
     { status: ready ? 200 : 503 },
   );

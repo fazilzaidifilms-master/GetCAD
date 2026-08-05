@@ -94,6 +94,37 @@ password manager, never in the repo.
   > every acknowledgement queues in the outbox until you configure it. But you
   > want it on before applicants start arriving, so they hear back.
 
+### 1d. Push notifications (VAPID) and the scheduler
+- ☐ Generate a keypair — this needs no account with anyone:
+  ```bash
+  npx web-push generate-vapid-keys
+  ```
+  It prints a **Public Key** (87 characters) and a **Private Key** (43).
+- ☐ Set three variables in Vercel *and* `.env.local`:
+  | Variable | Value |
+  | --- | --- |
+  | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | the 87-character public key |
+  | `VAPID_PRIVATE_KEY` | the 43-character private key |
+  | `VAPID_SUBJECT` | `mailto:` an address you read |
+  ⚠️ **The private key must never go in the `NEXT_PUBLIC_` variable.** Put it
+  there and it ships inside the JavaScript bundle of the public marketing site
+  while push carries on working perfectly — nothing fails, nothing is logged.
+  `/api/health` checks the lengths for exactly this reason.
+- ☐ Generate and set `CRON_SECRET`:
+  ```bash
+  openssl rand -hex 32
+  ```
+  🔎 Without it, `/api/cron/push` answers **404 to everyone** — closed, not open.
+  Notifications will queue and never be delivered to a device.
+- ☐ `vercel.json` already schedules `/api/cron/push` every minute.
+  ⚠️ Vercel's **Hobby** plan caps crons at one run per day, which would batch a
+  day of notifications into one delivery — and the queue retires anything older
+  than 24 hours, so some would never be sent at all. Minute-level scheduling
+  needs **Pro**, or point any external scheduler at the same URL with the same
+  bearer token.
+  > Push is optional to *deploy*: with no keys the app runs normally and
+  > notifications appear in-app, just not on anyone's phone.
+
 ## Phase 2 — Database
 
 - ☐ Point `DATABASE_URL` at production (Supabase → Session pooler, IPv4 string)
@@ -203,6 +234,55 @@ password manager, never in the repo.
      ```
      🔎 All checks pass: release → open → claim → paid → reversed. (Use
      `--offline` to exercise the DB path without the webhook round-trip.)
+
+## Phase 5b — The app on a real phone
+
+Everything above can be proved from a terminal. This part cannot: install
+behaviour, the safe-area inset under the home indicator, and whether a
+notification actually arrives are all things only a device tells you.
+
+Do this on **one iPhone and one Android phone** at minimum. iOS is the one that
+surprises people.
+
+- ☐ **Install it.** Open the site in Safari (iOS) or Chrome (Android) → Share /
+  menu → *Add to Home Screen*.
+  🔎 It opens with no browser chrome, and the icon on the home screen is the
+  artwork — not a screenshot of the page, and not a white square with a small
+  logo inside it (that means the maskable icon is not being picked up).
+- ☐ Check the bottom tab bar clears the home indicator on a phone with a notch
+  or a pill.
+  ⚠️ If the last row of a list sits *under* the bar, `viewportFit: "cover"` or
+  the `pb-24` clearance in the app layout has regressed.
+- ☐ **Turn notifications on**: Account → *Notifications on this device* →
+  **Turn on**.
+  ⚠️ On iOS this button is replaced by an install instruction if you are in a
+  Safari **tab**. That is correct, not a bug — Safari grants push only to an
+  installed app, and asking in a tab produces a denial the user cannot undo
+  without deleting and reinstalling.
+- ☐ **Prove one arrives.** From a second account, post a message on a shared
+  order, then either wait for the cron or force a run:
+  ```bash
+  npm run send-push
+  ```
+  🔎 The phone shows **"New message"** with no name, no amount and no order
+  reference. Tapping it opens that order rather than the dashboard.
+  ⚠️ If nothing arrives, check in this order: `/api/health` → `push: true`;
+  `npm run send-push` output (it names the reason); the phone's own notification
+  settings for the app.
+- ☐ **Check the lock screen.** Lock the phone and trigger another notification.
+  🔎 What is readable to someone who picks up the phone must be the fixed
+  wording only. If you ever see a name, a business, a figure or an order id
+  there, stop — that is the one failure this product cannot absorb.
+- ☐ **Go offline.** Enable airplane mode with the app open.
+  🔎 A bar appears under the header saying you are offline. Navigating shows the
+  offline page, not a stale cached order. Turn the network back on — the bar
+  goes away without a reload.
+- ☐ **Lighthouse.** Chrome DevTools → Lighthouse → *Mobile*, categories
+  Performance + Accessibility + Best Practices, run against the **production**
+  URL (a dev build scores meaninglessly low).
+  🔎 Installability has no blocking errors. Treat Accessibility below ~95 as a
+  bug worth fixing before launch; Performance varies with network and is not a
+  launch blocker on its own.
 
 ## Phase 6 — Before the first real customer
 
