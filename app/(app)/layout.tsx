@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { tabsForRole } from "@/core";
 import { BottomNav } from "@/components/nav/bottom-nav";
+import { ConnectionStatus } from "@/components/pwa/connection-status";
 import { NavLink } from "@/components/nav-link";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
@@ -75,6 +76,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </nav>
         </div>
       </header>
+
+      {/* Directly under the header, above everything else, so the answer to
+          "did that save?" is on screen before the question is asked. */}
+      <ConnectionStatus />
 
       {/* The tab bar is fixed, so every screen needs clearance beneath it or
           its last row sits under the bar. Done once here rather than as a
