@@ -1,7 +1,9 @@
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
+import { POST_AUTH_PATH } from "@/config/auth-redirects";
 
 const NAV = [
   { href: "/how-it-works", label: "How It Works" },
@@ -37,12 +39,27 @@ export function MarketingHeader() {
           >
             Contact sales
           </Link>
-          <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            Sign in
-          </Link>
-          <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
-            Get started
-          </Link>
+          {/* Signed in, this header used to keep offering "Sign in" and
+              "Get started" and gave no way into the product at all. Combined
+              with Clerk returning people here after authenticating, the whole
+              flow appeared to do nothing — you signed in and arrived at a page
+              still asking you to sign in. */}
+          <SignedOut>
+            <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              Sign in
+            </Link>
+            <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
+              Get started
+            </Link>
+          </SignedOut>
+          <SignedIn>
+            <Link href={POST_AUTH_PATH} className={buttonVariants({ size: "sm" })}>
+              Open the app
+            </Link>
+            <div className="ml-1 flex items-center">
+              <UserButton />
+            </div>
+          </SignedIn>
         </div>
       </div>
     </header>

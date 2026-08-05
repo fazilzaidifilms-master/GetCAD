@@ -8,6 +8,7 @@ import { ConnectionStatus } from "@/components/pwa/connection-status";
 import { NavLink } from "@/components/nav-link";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
+import { POST_AUTH_PATH } from "@/config/auth-redirects";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -49,12 +50,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <nav className="flex items-center gap-1">
             <SignedOut>
-              <SignInButton mode="modal">
+              <SignInButton mode="modal" fallbackRedirectUrl={POST_AUTH_PATH}>
                 <Button variant="ghost" size="sm">
                   Sign in
                 </Button>
               </SignInButton>
-              <SignUpButton mode="modal">
+              <SignUpButton mode="modal" fallbackRedirectUrl={POST_AUTH_PATH}>
                 <Button size="sm">Get started</Button>
               </SignUpButton>
             </SignedOut>
