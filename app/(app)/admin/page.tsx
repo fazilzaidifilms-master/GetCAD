@@ -123,6 +123,20 @@ export default async function AdminPage() {
         </div>
       )}
 
+      {/* Access is OPS only, matching app.require_ops() on the functions behind
+          it. SALES, QC and FINANCE are roles you can be GIVEN, and a role that
+          can grant itself a promotion is not a boundary. */}
+      {role === "OPS" && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link
+            href="/admin/users"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+          >
+            Access — roles and accounts →
+          </Link>
+        </div>
+      )}
+
       {inQcReview && (
         <div className="mt-4 rounded-md border border-border bg-subtle px-4 py-3 text-sm">
           <p className="font-medium">Independent QC review</p>

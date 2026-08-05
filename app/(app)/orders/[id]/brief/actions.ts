@@ -17,6 +17,15 @@ import { createUserSupabaseClient } from "@/lib/supabase/server";
  */
 export async function startBriefAction(): Promise<void> {
   const supabase = await createUserSupabaseClient();
+
+  // orders.client_id has a foreign key to users.id, and a person who signed up
+  // and pressed "New order" before visiting any screen that calls this has no
+  // row yet. The failure is a raw foreign-key violation on their very first
+  // action in the product. Every other authenticated screen already does this;
+  // this path was the one that did not.
+  const ensured = await supabase.rpc("ensure_self");
+  if (ensured.error) throw new Error(ensured.error.message);
+
   const id = generateId();
   const { error } = await supabase.rpc("create_order", {
     p_id: id,

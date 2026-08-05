@@ -198,18 +198,36 @@ applying in-app. **Staff roles have no user interface.**
 
 ### Give someone a staff role
 
-Have them sign in once first — that creates their user row.
+**In the app: Queue → Access — roles and accounts** (`/admin/users`, OPS only).
+
+Have them sign in once first — that creates their account. Then find them by the
+account reference they can read off their own Account screen, pick a role, and
+press *Set role*. It takes effect on their next page load. *Suspend* freezes an
+account without deleting it; there is no delete, because orders, escrow rows and
+audit entries reference a user and a platform that can erase a counterparty
+cannot answer a dispute.
+
+Every change is written to the audit log **with the account that made it** —
+unlike most events here, which deliberately omit the actor. Granting privilege
+is exactly what a log exists to answer "who did that" about.
+
+The last active OPS account cannot be demoted or suspended. Promote a second one
+first; otherwise you are left with a platform nobody can administer from inside
+the app.
+
+**The first OPS account is the exception**, because there is no OPS yet to grant
+it. Do that one in the Supabase SQL editor, once:
 
 ```sql
--- 1. find them (the id is their sign-in identity)
+-- 1. find yourself (the id is your sign-in identity)
 SELECT id, role, status FROM users ORDER BY created_at DESC LIMIT 20;
 
--- 2. set the role: SALES | OPS | QC | FINANCE
+-- 2. promote
 UPDATE users SET role = 'OPS', status = 'ACTIVE' WHERE id = 'user_xxx';
 ```
 
-They see the new console on their next page load. To remove access, set the role
-back to `CLIENT`, or `status = 'SUSPENDED'` to freeze the account entirely.
+After that, use the Access screen — it leaves a record, and the SQL editor does
+not.
 
 ### Take a designer live
 
