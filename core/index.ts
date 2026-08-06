@@ -15,6 +15,8 @@ export { isStaffRole, STAFF_ROLES } from "./auth/roles";
 export type { StaffRole } from "./auth/roles";
 export { availableTransitions } from "./orders/availableTransitions";
 export type { TransitionRow, ActorContext } from "./orders/availableTransitions";
+export { installAdvice, isIos, isIosSafari } from "./pwa/install";
+export type { InstallAdvice, InstallContext } from "./pwa/install";
 export { tabsForRole, activeTabKey } from "./nav/tabs";
 export type { Tab } from "./nav/tabs";
 export { orderActions, primaryAction } from "./orders/actions";

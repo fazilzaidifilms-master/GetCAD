@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { installAdvice, type InstallAdvice } from "@/core";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -13,16 +14,22 @@ import { Button } from "@/components/ui/button";
  * once suppresses the real prompt for a long time. Better to be findable than
  * insistent.
  *
- * Two platforms, two mechanisms:
+ * THREE PLATFORMS, THREE HONEST ANSWERS.
  *
- *   - Chrome/Android fires `beforeinstallprompt`, which must be stashed and
- *     replayed from a user gesture. Calling `prompt()` outside one is ignored.
- *   - Safari/iOS fires nothing and has no API at all, so the only honest
- *     option is telling people where the button is. This matters more than it
- *     sounds: on iOS, web push ONLY works once the app is on the home screen,
- *     so this text is a prerequisite for notifications ever arriving.
+ *   - Chrome and Edge fire `beforeinstallprompt`, which must be stashed and
+ *     replayed from a user gesture. That is a real button.
+ *   - iOS SAFARI has no such API — Apple has never implemented it on any
+ *     version — so the only truthful thing is to show where the button they
+ *     need actually is, in their browser's own chrome.
+ *   - iOS ANYTHING ELSE cannot install at all. Chrome, Firefox and every
+ *     in-app browser on iOS run on WebKit but are denied the capability, so
+ *     their "Add to Home Screen" makes a shortcut that reopens in a browser.
+ *     That is what people mean when they say it saved a bookmark instead of
+ *     installing, and it is invisible unless we name it.
  *
- * Renders nothing when already installed.
+ * The decision itself is in `core/pwa/install`, unit-tested against real user
+ * agent strings, because "which browser is this" is exactly the kind of logic
+ * that rots silently.
  */
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -31,28 +38,31 @@ interface InstallPromptEvent extends Event {
 
 export function InstallHint() {
   const [deferred, setDeferred] = useState<InstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
-  const [isIos, setIsIos] = useState(false);
+  const [advice, setAdvice] = useState<InstallAdvice | null>(null);
 
   useEffect(() => {
-    // `display-mode: standalone` is the cross-browser signal; `navigator.standalone`
-    // is the older iOS-only one, and iOS still needs it.
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as { standalone?: boolean }).standalone === true;
-    setInstalled(standalone);
+    const read = (hasPrompt: boolean) =>
+      installAdvice({
+        userAgent: window.navigator.userAgent,
+        standalone:
+          window.matchMedia("(display-mode: standalone)").matches ||
+          (window.navigator as Navigator & { standalone?: boolean }).standalone === true,
+        hasPrompt,
+        maxTouchPoints: window.navigator.maxTouchPoints,
+      });
 
-    setIsIos(/iphone|ipad|ipod/i.test(window.navigator.userAgent));
+    setAdvice(read(false));
 
     const onPrompt = (event: Event) => {
       // Suppress Chrome's own mini-infobar so the offer appears here, once,
       // where the user went looking for it.
       event.preventDefault();
       setDeferred(event as InstallPromptEvent);
+      setAdvice(read(true));
     };
     const onInstalled = () => {
-      setInstalled(true);
       setDeferred(null);
+      setAdvice("INSTALLED");
     };
 
     window.addEventListener("beforeinstallprompt", onPrompt);
@@ -63,9 +73,9 @@ export function InstallHint() {
     };
   }, []);
 
-  if (installed) return null;
+  if (advice === null || advice === "INSTALLED" || advice === "NOT_AVAILABLE") return null;
 
-  if (deferred) {
+  if (advice === "PROMPT_READY" && deferred) {
     return (
       <Wrap>
         <p className="text-[length:var(--fs-3)] text-muted-foreground">
@@ -87,21 +97,93 @@ export function InstallHint() {
     );
   }
 
-  if (isIos) {
+  if (advice === "IOS_WRONG_BROWSER") {
     return (
       <Wrap>
-        <p className="text-[length:var(--fs-3)] text-muted-foreground">
-          To install: tap <span className="font-medium text-foreground">Share</span>, then{" "}
-          <span className="font-medium text-foreground">Add to Home Screen</span>. On iPhone,
-          notifications only work once the app is installed this way.
+        <p className="text-[length:var(--fs-3)] font-medium">Open this in Safari to install</p>
+        <p className="mt-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
+          On iPhone and iPad, only Safari can install an app. Adding to the Home Screen from this
+          browser makes a shortcut that reopens in a browser — not the app.
+        </p>
+        <p className="mt-2.5 text-[length:var(--fs-2)] text-muted-foreground">
+          Copy this page&apos;s address, open Safari, paste it, then follow the steps there.
         </p>
       </Wrap>
     );
   }
 
-  // Chrome may not have fired the event yet, or the browser cannot install at
-  // all. Saying nothing beats explaining an absent capability.
-  return null;
+  // IOS_SAFARI — the Share-sheet route, shown as steps rather than a sentence.
+  return (
+    <Wrap>
+      <p className="text-[length:var(--fs-3)] font-medium">Install on this iPhone</p>
+      <p className="mt-1.5 text-[length:var(--fs-2)] text-muted-foreground">
+        Apple gives websites no install button, so this is the only way — it makes a real app, not a
+        bookmark.
+      </p>
+
+      <ol className="mt-3 flex flex-col gap-2.5">
+        <Step n={1}>
+          Tap the <ShareGlyph /> <strong className="font-medium text-foreground">Share</strong> button
+          in Safari&apos;s toolbar
+        </Step>
+        <Step n={2}>
+          Scroll down and choose{" "}
+          <strong className="font-medium text-foreground">Add to Home Screen</strong>
+        </Step>
+        <Step n={3}>
+          Tap <strong className="font-medium text-foreground">Add</strong>, then open the app from
+          your Home Screen
+        </Step>
+      </ol>
+
+      <p className="mt-3 text-[length:var(--fs-2)] text-muted-foreground">
+        Notifications on iPhone only work once the app is installed this way.
+      </p>
+    </Wrap>
+  );
+}
+
+/** The steps are genuinely ordered — do them out of order and nothing happens. */
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-2.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
+      <span
+        aria-hidden="true"
+        className="tabular mt-[.15em] flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--r-full)] border border-border font-mono text-[length:var(--fs-1)] text-foreground"
+      >
+        {n}
+      </span>
+      <span>{children}</span>
+    </li>
+  );
+}
+
+/**
+ * Safari's Share icon, drawn rather than described.
+ *
+ * "Tap Share" is not findable if you do not already know the glyph — it is an
+ * unlabelled icon in a toolbar of unlabelled icons.
+ */
+function ShareGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="inline-block align-[-2px] text-foreground"
+      role="img"
+      aria-label="the Share icon"
+    >
+      <path d="M12 15V3" />
+      <path d="m8 7 4-4 4 4" />
+      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+    </svg>
+  );
 }
 
 function Wrap({ children }: { children: React.ReactNode }) {
