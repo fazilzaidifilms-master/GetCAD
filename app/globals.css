@@ -89,16 +89,40 @@
    * pair is how a careful type scale quietly stops being one.
    */
 
+  /*
+   * TWO DENSITIES, ONE COMPONENT LIBRARY.
+   *
+   * The app serves two populations with opposite needs. A jewellery shop owner
+   * places one order a fortnight, on a phone, in a bright showroom, in their
+   * fifties — they need size and air. Staff work forty orders a day and need to
+   * see as many rows at once as will fit. Building for either one alone makes
+   * the app wrong for the other, and building two component libraries is how
+   * they drift apart.
+   *
+   * So every size in the system is a token, and `data-density` on an ancestor
+   * chooses the values. Components never branch on density; they read tokens.
+   *
+   *   default (no attribute) — COMFORTABLE, for client and designer screens
+   *   [data-density="compact"] — the previous values, for staff screens
+   *
+   * That means staff screens are pixel-identical to before, and everything else
+   * grew, from one file.
+   */
   :root {
-    /* Type: size / line-height / tracking, paired by step. */
-    --fs-1: 11px;   --lh-1: 16px;  --ls-1: 0.055em;   /* micro caps, labels */
-    --fs-2: 12px;   --lh-2: 18px;  --ls-2: 0.002em;   /* meta, captions */
-    --fs-3: 13px;   --lh-3: 20px;  --ls-3: -0.006em;  /* dense UI text */
-    --fs-4: 15px;   --lh-4: 22px;  --ls-4: -0.011em;  /* default UI text */
-    --fs-5: 20px;   --lh-5: 27px;  --ls-5: -0.019em;  /* section titles */
+    /* Type: size / line-height / tracking, paired by step.
+     *
+     * Nothing informational sits below 15px, and nothing at all below 13px. The
+     * old scale bottomed out at 11px and did most of its work at 13px, which is
+     * comfortable at a desk in your thirties and guesswork on a phone at
+     * arm's length in your fifties. */
+    --fs-1: 13px;   --lh-1: 18px;  --ls-1: 0.045em;   /* micro caps, labels */
+    --fs-2: 15px;   --lh-2: 22px;  --ls-2: 0.002em;   /* meta, captions */
+    --fs-3: 17px;   --lh-3: 25px;  --ls-3: -0.008em;  /* body — the default */
+    --fs-4: 19px;   --lh-4: 26px;  --ls-4: -0.012em;  /* emphasis */
+    --fs-5: 22px;   --lh-5: 28px;  --ls-5: -0.019em;  /* section titles */
     --fs-6: 28px;   --lh-6: 34px;  --ls-6: -0.026em;  /* screen titles */
-    --fs-b: 16px;   --lh-b: 24px;                     /* body / long-form */
-    --fs-l: 14px;   --lh-l: 20px;                     /* list rows */
+    --fs-b: 17px;   --lh-b: 26px;                     /* body / long-form */
+    --fs-l: 17px;   --lh-l: 25px;                     /* list rows */
 
     --fw-regular: 400;
     --fw-medium: 500;
@@ -109,15 +133,26 @@
     --s-4: 16px;  --s-5: 20px;  --s-6: 24px;  --s-8: 32px;  --s-10: 40px;
     --s-12: 48px; --s-16: 64px;
 
-    --r-xs: 3px; --r-sm: 5px; --r-md: 7px; --r-lg: 10px; --r-xl: 14px;
+    /* Softer corners at the comfortable density. A 3px radius reads as
+     * precision instrumentation; on a screen someone uses twice a month it
+     * reads as unfinished. */
+    --r-xs: 6px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px;
     --r-full: 999px;
 
     /*
-     * Minimum interactive height. 48px, not the 44px minimum, because these are
-     * one-way money and state actions taken on a phone — an accidental
-     * "Approve and release" is not undoable.
+     * Interactive heights. 48px default, not the 44px platform minimum, because
+     * these are one-way money and state actions taken on a phone — an
+     * accidental "Approve and release" is not undoable.
+     *
+     * --ctl-sm exists so `size="sm"` still means something at the compact
+     * density without dropping below 44px at the comfortable one. Every button,
+     * input and select reads these rather than hard-coding a height, which is
+     * what lets one component serve both densities.
      */
+    --ctl-sm: 44px;
     --ctl: 48px;
+    --ctl-lg: 56px;
+    --ctl-icon: 44px;
 
     --dur-instant: 80ms;
     --dur-fast: 120ms;
@@ -137,6 +172,32 @@
     --e-1: 0 1px 2px rgba(18, 19, 22, 0.05);
     --e-2: 0 4px 14px -3px rgba(18, 19, 22, 0.09);
     --focus-ring: 0 0 0 3px rgba(47, 81, 217, 0.22);
+  }
+
+  /*
+   * COMPACT — the staff density, and exactly the values the whole app used
+   * before. Applied by app/(app)/admin/layout.tsx and nowhere else.
+   *
+   * Written as an attribute selector rather than a class so it cannot be
+   * removed by a `className` edit, and so a screenshot of the DOM tells you
+   * which density you are looking at.
+   */
+  [data-density="compact"] {
+    --fs-1: 11px;   --lh-1: 16px;  --ls-1: 0.055em;
+    --fs-2: 12px;   --lh-2: 18px;  --ls-2: 0.002em;
+    --fs-3: 13px;   --lh-3: 20px;  --ls-3: -0.006em;
+    --fs-4: 15px;   --lh-4: 22px;  --ls-4: -0.011em;
+    --fs-5: 20px;   --lh-5: 27px;  --ls-5: -0.019em;
+    --fs-6: 28px;   --lh-6: 34px;  --ls-6: -0.026em;
+    --fs-b: 16px;   --lh-b: 24px;
+    --fs-l: 14px;   --lh-l: 20px;
+
+    --r-xs: 3px; --r-sm: 5px; --r-md: 7px; --r-lg: 10px; --r-xl: 14px;
+
+    --ctl-sm: 32px;
+    --ctl: 36px;
+    --ctl-lg: 40px;
+    --ctl-icon: 36px;
   }
 
   .dark {
