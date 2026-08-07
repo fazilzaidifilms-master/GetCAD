@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 /**
  * Tells you when the network is gone, before you find out by losing a form.
  *
@@ -24,8 +26,13 @@ import { useEffect, useState } from "react";
  * It also does not poll. A heartbeat to prove reachability would be a request
  * every few seconds from every open tab, forever, to answer a question the
  * user's next action answers for free.
+ *
+ * `className` exists for one reason: the sticky offset. This sits below the
+ * header, and the header is not always the same height — on a phone it is 56px,
+ * at desk width the sidebar has replaced it and there is nothing above this at
+ * all. The shell owns that geometry, so the shell passes it in.
  */
-export function ConnectionStatus() {
+export function ConnectionStatus({ className }: { className?: string }) {
   // Starts online: rendering an "offline" bar during hydration on a perfectly
   // good connection, for the split second before the event listener attaches,
   // is a worse lie than being briefly late to report a real outage.
@@ -51,7 +58,11 @@ export function ConnectionStatus() {
       // screen-reader user was in the middle of reading.
       role="status"
       aria-live="polite"
-      className="sticky top-14 z-30 border-b border-border bg-muted px-4 py-2 text-center text-[length:var(--fs-2)] text-muted-foreground"
+      className={cn(
+        "sticky z-20 border-b border-border bg-muted px-4 py-2 text-center",
+        "text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground",
+        className ?? "top-14",
+      )}
     >
       You&apos;re offline. Nothing will save until you&apos;re back — anything you type stays on
       screen.
