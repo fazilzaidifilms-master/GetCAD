@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import { TONE_TEXT } from "@/lib/tone";
@@ -246,7 +247,7 @@ export function OrderDetail({
                   name="designer_id"
                   placeholder="designer reference"
                   aria-label="Designer reference to assign"
-                  className="h-8 w-40"
+                  className="h-[var(--ctl-sm)] w-40"
                 />
               )}
               <Button type="submit" variant="outline" size="sm">
@@ -454,18 +455,18 @@ export function OrderDetail({
                 {isOrderClient ? (
                   <input type="hidden" name="kind" value="CLIENT_REFERENCE" />
                 ) : (
-                  <select
+                  <Select
                     name="kind"
                     defaultValue="RENDER"
                     aria-label="What this file is"
-                    className="h-9 rounded-md border border-input bg-background px-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]"
+                    className="w-auto"
                   >
                     {UPLOADABLE_KINDS.map((k) => (
                       <option key={k} value={k}>
                         {FILE_KIND_LABELS[k]}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 )}
                 <Button type="submit" variant="outline" size="sm">
                   Upload

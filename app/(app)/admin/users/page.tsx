@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
 import { setUserRoleAction, setUserStatusAction } from "./actions";
+import { Select } from "@/components/ui/select";
 
 /**
  * Access control — who is on the platform and what they may do.
@@ -102,11 +103,11 @@ export default async function AdminUsersPage({
           aria-label="Search by account reference"
           className="max-w-xs"
         />
-        <select
+        <Select
           name="role"
           defaultValue={roleFilter ?? "ALL"}
           aria-label="Filter by role"
-          className="h-9 rounded-md border border-input bg-background px-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]"
+          className="w-auto"
         >
           <option value="ALL">All roles</option>
           {ROLES.map((r) => (
@@ -114,7 +115,7 @@ export default async function AdminUsersPage({
               {partyLabel(r)}
             </option>
           ))}
-        </select>
+        </Select>
         <Button type="submit" variant="outline" size="sm">
           Filter
         </Button>
@@ -155,18 +156,18 @@ export default async function AdminUsersPage({
                   <div className="flex flex-wrap items-center gap-2">
                     <form action={setUserRoleAction} className="flex items-center gap-1.5">
                       <input type="hidden" name="user_id" value={u.id} />
-                      <select
+                      <Select
                         name="role"
                         defaultValue={u.role}
                         aria-label={`Role for ${u.id}`}
-                        className="h-9 rounded-md border border-input bg-background px-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]"
+                        className="w-auto"
                       >
                         {ROLES.map((r) => (
                           <option key={r} value={r}>
                             {partyLabel(r)}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       <Button type="submit" variant="outline" size="sm">
                         Set role
                       </Button>

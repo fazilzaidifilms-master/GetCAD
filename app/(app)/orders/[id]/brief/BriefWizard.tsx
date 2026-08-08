@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox, Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TONE_TEXT } from "@/lib/tone";
 import { cn } from "@/lib/utils";
@@ -323,13 +324,13 @@ export function BriefWizard({
             <input type="hidden" name="accent_quantity" value={Number(row.quantity) || 0} />
 
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Select
+              <SelectField
                 label="Shape"
                 options={SHAPES.map((v) => [v, label(v)])}
                 value={row.shape}
                 onChange={(v) => updateAccent(setAccents, i, { shape: v })}
               />
-              <Select
+              <SelectField
                 label="Setting"
                 options={SETTINGS.map((v) => [v, label(v)])}
                 value={row.setting}
@@ -568,7 +569,7 @@ function Field({
 /**
  * Radio group rendered as tappable cards.
  *
- * A native `<select>` on a phone opens a wheel that hides the question and
+ * A native dropdown on a phone opens a wheel that hides the question and
  * shows one option at a time — bad wherever the choice carries a consequence
  * the person is supposed to weigh, which here is most of them.
  */
@@ -621,7 +622,7 @@ function Choice({
   );
 }
 
-function Select({
+function SelectField({
   label: text,
   options,
   value,
@@ -635,17 +636,17 @@ function Select({
   return (
     <div className="mt-4">
       <Label>{text}</Label>
-      <select
+      <Select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 min-h-[var(--ctl)] w-full rounded-[var(--r-md)] border border-input bg-background px-3 text-[length:var(--fs-3)]"
+        className="mt-1.5"
       >
         {options.map(([v, t]) => (
           <option key={v} value={v}>
             {t}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }
@@ -665,12 +666,11 @@ function Toggle({
 }) {
   return (
     <label className="mt-5 flex min-h-[var(--ctl)] cursor-pointer items-start gap-3">
-      <input
-        type="checkbox"
+      <Checkbox
         name={name}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 h-4 w-4"
+        className="mt-0.5"
       />
       <span>
         <span className="text-[length:var(--fs-4)] font-medium">{text}</span>

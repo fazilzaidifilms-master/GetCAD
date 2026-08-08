@@ -16,10 +16,10 @@ import {
   type PayoutAccountInput,
 } from "@/lib/validation/payoutAccount";
 
+import { Select } from "@/components/ui/select";
+
 import { savePayoutAccountAction } from "./actions";
 
-const selectCls =
-  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -121,13 +121,13 @@ export function PayoutAccountForm({ hasExisting }: { hasExisting: boolean }) {
         </div>
         <div>
           <Label htmlFor="accountType">Account type</Label>
-          <select id="accountType" className={selectCls} {...register("accountType")}>
+          <Select id="accountType" {...register("accountType")}>
             {ACCOUNT_TYPES.map((t) => (
               <option key={t} value={t}>
                 {ACCOUNT_TYPE_LABELS[t]}
               </option>
             ))}
-          </select>
+          </Select>
           <FieldError message={errors.accountType?.message} />
         </div>
       </div>
