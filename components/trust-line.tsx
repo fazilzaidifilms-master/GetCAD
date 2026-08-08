@@ -12,13 +12,17 @@ export function TrustLine({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground",
+        "flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground",
         className,
       )}
     >
       {GUARANTEES.map((g, i) => (
         <span key={g} className="inline-flex items-center gap-2">
-          {i > 0 && <span aria-hidden className="text-muted-foreground/40">·</span>}
+          {i > 0 && (
+            <span aria-hidden className="text-muted-foreground/40">
+              ·
+            </span>
+          )}
           <span className="inline-flex items-center gap-1">
             <svg
               viewBox="0 0 24 24"

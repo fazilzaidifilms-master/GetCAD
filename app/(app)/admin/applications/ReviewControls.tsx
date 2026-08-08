@@ -47,7 +47,7 @@ export function ReviewControls({ id, status }: { id: string; status: string }) {
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Review note (required to reject)"
         rows={2}
-        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
       <div className="flex flex-wrap gap-2">
         {status !== "ACCEPTED" && (
@@ -78,7 +78,7 @@ export function ReviewControls({ id, status }: { id: string; status: string }) {
           </Button>
         )}
       </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-destructive">{error}</p>}
     </div>
   );
 }

@@ -77,12 +77,17 @@ export function ActionBar({
       {active ? (
         <div className="space-y-3">
           {active.confirm ? (
-            <p className="text-sm text-muted-foreground">{active.confirm}</p>
+            <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
+              {active.confirm}
+            </p>
           ) : null}
 
           {needsReason ? (
             <div className="space-y-1.5">
-              <label htmlFor="action-reason" className="text-sm font-medium">
+              <label
+                htmlFor="action-reason"
+                className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium"
+              >
                 Why?
               </label>
               <Textarea
@@ -101,7 +106,9 @@ export function ActionBar({
               variant={INTENT_VARIANT[active.intent]}
               className="min-h-[var(--ctl)] flex-1"
               disabled={pending || !reasonReady}
-              onClick={() => onAct(active, needsReason ? reason.trim() : undefined)}
+              onClick={() =>
+                onAct(active, needsReason ? reason.trim() : undefined)
+              }
             >
               {pending ? "Working…" : active.label}
             </Button>

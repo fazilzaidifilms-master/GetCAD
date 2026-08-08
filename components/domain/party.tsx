@@ -17,7 +17,14 @@ import { cn } from "@/lib/utils";
  * the designer learns which individual acted, and staff do not learn who the
  * client or designer are either.
  */
-export type PartyRole = "CLIENT" | "DESIGNER" | "QC" | "OPS" | "SALES" | "FINANCE" | "SYSTEM";
+export type PartyRole =
+  | "CLIENT"
+  | "DESIGNER"
+  | "QC"
+  | "OPS"
+  | "SALES"
+  | "FINANCE"
+  | "SYSTEM";
 
 const LABEL: Record<PartyRole, string> = {
   CLIENT: "Client",
@@ -46,6 +53,8 @@ export function Party({
   isSelf?: boolean;
 }) {
   return (
-    <span className={cn("font-medium", className)}>{isSelf ? "You" : partyLabel(role)}</span>
+    <span className={cn("font-medium", className)}>
+      {isSelf ? "You" : partyLabel(role)}
+    </span>
   );
 }

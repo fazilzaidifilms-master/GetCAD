@@ -103,8 +103,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       <main className="container max-w-3xl py-8">
         <BackLink />
         <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
-          <p className="text-sm font-medium">Order not available</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">Order not available</p>
+          <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             This order isn&apos;t visible to your role, or the reference is wrong.
           </p>
         </div>
@@ -143,7 +143,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </h1>
         <StatusBadge status={order.status} />
       </div>
-      <p className="tabular mt-0.5 font-mono text-xs text-muted-foreground">{order.id}</p>
+      <p className="tabular mt-0.5 font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">{order.id}</p>
 
       {/* The brief is a route, not a panel: it is long, and it must be
           resumable and linkable. */}
@@ -182,7 +182,7 @@ function BackLink() {
   return (
     <Link
       href="/orders"
-      className="inline-flex min-h-[var(--ctl)] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      className="inline-flex min-h-[var(--ctl)] items-center gap-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground transition-colors hover:text-foreground"
     >
       ← All orders
     </Link>

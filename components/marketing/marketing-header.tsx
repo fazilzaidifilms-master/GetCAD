@@ -35,7 +35,11 @@ export function MarketingHeader() {
         <div className="flex items-center gap-2">
           <Link
             href="/contact"
-            className={buttonVariants({ variant: "ghost", size: "sm", className: "hidden sm:inline-flex" })}
+            className={buttonVariants({
+              variant: "ghost",
+              size: "sm",
+              className: "hidden sm:inline-flex",
+            })}
           >
             Contact sales
           </Link>
@@ -45,7 +49,10 @@ export function MarketingHeader() {
               flow appeared to do nothing — you signed in and arrived at a page
               still asking you to sign in. */}
           <SignedOut>
-            <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <Link
+              href="/sign-in"
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
               Sign in
             </Link>
             <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
@@ -53,7 +60,10 @@ export function MarketingHeader() {
             </Link>
           </SignedOut>
           <SignedIn>
-            <Link href={POST_AUTH_PATH} className={buttonVariants({ size: "sm" })}>
+            <Link
+              href={POST_AUTH_PATH}
+              className={buttonVariants({ size: "sm" })}
+            >
               Open the app
             </Link>
             <div className="ml-1 flex items-center">

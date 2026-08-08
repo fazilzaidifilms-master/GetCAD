@@ -93,7 +93,7 @@ export function PayButton({
 
   if (awaitingConfirmation) {
     return (
-      <div className="rounded-md border border-border bg-subtle px-3 py-2 text-sm">
+      <div className="rounded-md border border-border bg-subtle px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
         <p className="font-medium">Payment submitted</p>
         <p className="mt-1 text-muted-foreground">
           We&apos;re confirming it with the payment provider. This page will show{" "}
@@ -110,7 +110,7 @@ export function PayButton({
         {busy ? "Opening checkout…" : `Pay ${formatMoney(amount, currency)}`}
       </Button>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-destructive">
+        <p role="alert" className="mt-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
           {error}
         </p>
       )}

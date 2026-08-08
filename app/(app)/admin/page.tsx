@@ -43,8 +43,8 @@ export default async function AdminPage() {
   if (!isStaffRole(role)) {
     return (
       <main className="container max-w-2xl py-12">
-        <h1 className="text-xl font-semibold tracking-tight">Staff console</h1>
-        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-sm text-muted-foreground">
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Staff console</h1>
+        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
           This area is for staff roles (SALES, OPS, QC, FINANCE). Your role is{" "}
           <Badge variant="muted">{role}</Badge>.
         </div>
@@ -64,8 +64,8 @@ export default async function AdminPage() {
   if (ordersRes.error || transitionsRes.error) {
     return (
       <main className="container max-w-2xl py-12">
-        <h1 className="text-xl font-semibold tracking-tight">Staff console</h1>
-        <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Staff console</h1>
+        <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
           <p className="font-medium">Couldn&apos;t load your queue</p>
           <p className="mt-1 text-destructive/90">
             {(ordersRes.error ?? transitionsRes.error)?.message} — reload the page to try again.
@@ -91,15 +91,15 @@ export default async function AdminPage() {
     <main className="container max-w-5xl py-8">
       <div className="flex items-baseline justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Staff console</h1>
-          <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+          <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Staff console</h1>
+          <p className="mt-1 flex items-center gap-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             <Badge variant="muted">{role}</Badge>
             <span className="tabular">
               {orders.length} order{orders.length === 1 ? "" : "s"} awaiting your action
             </span>
           </p>
         </div>
-        <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/orders" className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground hover:text-foreground">
           All orders →
         </Link>
       </div>
@@ -110,13 +110,13 @@ export default async function AdminPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href="/admin/applications"
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] hover:bg-accent"
           >
             Designer applications →
           </Link>
           <Link
             href="/admin/leads"
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] hover:bg-accent"
           >
             Contact leads →
           </Link>
@@ -130,7 +130,7 @@ export default async function AdminPage() {
         <div className="mt-2 flex flex-wrap gap-2">
           <Link
             href="/admin/users"
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] hover:bg-accent"
           >
             Access — roles and accounts →
           </Link>
@@ -138,7 +138,7 @@ export default async function AdminPage() {
       )}
 
       {inQcReview && (
-        <div className="mt-4 rounded-md border border-border bg-subtle px-4 py-3 text-sm">
+        <div className="mt-4 rounded-md border border-border bg-subtle px-4 py-3 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
           <p className="font-medium">Independent QC review</p>
           <p className="mt-0.5 text-muted-foreground">
             Your decision here is the client&apos;s visible quality gate — recorded as
@@ -150,8 +150,8 @@ export default async function AdminPage() {
 
       {orders.length === 0 ? (
         <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
-          <p className="text-sm font-medium">Queue clear</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">Queue clear</p>
+          <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             Nothing needs a {role} action right now. New orders will appear here the moment they
             reach a state your role can act on.
           </p>
@@ -165,11 +165,11 @@ export default async function AdminPage() {
                 <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={status} />
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
                       {STATUS_LABEL[status] ?? "Awaiting action"}
                     </span>
                   </div>
-                  <span className="tabular text-xs text-muted-foreground">{group.length}</span>
+                  <span className="tabular text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">{group.length}</span>
                 </header>
                 <ul className="divide-y divide-border">
                   {group.map((o) => {
@@ -181,8 +181,8 @@ export default async function AdminPage() {
                     return (
                       <li key={o.id} className="flex items-center gap-4 px-4 py-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium">{o.product_type}</p>
-                          <p className="tabular truncate font-mono text-xs text-muted-foreground">
+                          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">{o.product_type}</p>
+                          <p className="tabular truncate font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                             {o.id}
                           </p>
                         </div>
@@ -193,7 +193,7 @@ export default async function AdminPage() {
                         </div>
                         <Link
                           href={`/orders/${o.id}`}
-                          className="shrink-0 text-sm font-medium text-primary hover:underline"
+                          className="shrink-0 text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium text-primary hover:underline"
                         >
                           Act →
                         </Link>

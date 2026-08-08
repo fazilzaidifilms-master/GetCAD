@@ -182,7 +182,7 @@ export function OrderDetail({
           trust surface: the client always sees exactly where their order is. */}
       <Panel title="Timeline">
         {timelineError ? (
-          <p className="text-sm text-destructive">
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
             Couldn&apos;t load history: {timelineError}
           </p>
         ) : (
@@ -193,7 +193,7 @@ export function OrderDetail({
       {/* Independent QC decision — the visible quality gate for this order. */}
       {isQcDecision && (
         <Panel title="Independent QC review">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             Your decision appears on the client&apos;s timeline as &quot;Independent QC review:
             passed&quot; or &quot;revision requested&quot;, by role only. It is recorded against
             your account so the review is attributable and payable — you cannot review work you
@@ -218,9 +218,9 @@ export function OrderDetail({
 
       {/* Overview + generic actions */}
       <Panel title="Order" aside={<StatusBadge status={o.status} />}>
-        <dl className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-1.5 text-sm">
+        <dl className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
           <dt className="text-muted-foreground">Reference</dt>
-          <dd className="tabular truncate font-mono text-xs" title={o.id}>
+          <dd className="tabular truncate font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)]" title={o.id}>
             {o.id}
           </dd>
           <dt className="text-muted-foreground">Type</dt>
@@ -228,14 +228,14 @@ export function OrderDetail({
           {lastUpdatedAt && (
             <>
               <dt className="text-muted-foreground">Recorded</dt>
-              <dd className="tabular font-mono text-xs text-muted-foreground">{lastUpdatedAt}</dd>
+              <dd className="tabular font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">{lastUpdatedAt}</dd>
             </>
           )}
         </dl>
 
         <div className="mt-4 flex flex-wrap items-end gap-2">
           {actions.length === 0 && (
-            <p className="text-xs text-muted-foreground">No actions available for your role now.</p>
+            <p className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">No actions available for your role now.</p>
           )}
           {actions.map((to) => (
             <form key={to} action={transitionAction} className="flex items-end gap-1.5">
@@ -261,7 +261,7 @@ export function OrderDetail({
       {showMoney && (
         <Panel title="Payment">
           {o.price_total > 0 && (
-            <dl className="grid grid-cols-2 gap-y-1.5 text-sm sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-y-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] sm:grid-cols-4">
               {[
                 ["Total", o.price_total],
                 ["Designer", o.designer_payout],
@@ -269,7 +269,7 @@ export function OrderDetail({
                 ["Platform", o.platform_commission],
               ].map(([label, amt]) => (
                 <div key={label as string}>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
+                  <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">{label}</dt>
                   <dd className="tabular font-mono">{formatMoney(amt as number, o.currency)}</dd>
                 </div>
               ))}
@@ -277,7 +277,7 @@ export function OrderDetail({
           )}
 
           {held > 0 && (
-            <div className="mt-3 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+            <div className="mt-3 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
               <span className="text-muted-foreground">Held in escrow</span>
               <span className="tabular ml-auto font-mono font-medium">
@@ -286,34 +286,34 @@ export function OrderDetail({
             </div>
           )}
           {o.status === "PAYOUT_RELEASED" && (
-            <p className={`mt-3 text-sm ${TONE_TEXT.success}`}>
+            <p className={`mt-3 text-[length:var(--fs-3)] leading-[var(--lh-3)] ${TONE_TEXT.success}`}>
               Funds released to the payout legs.
             </p>
           )}
           {o.status === "REFUNDED" && (
-            <p className="mt-3 text-sm text-muted-foreground">Funds refunded to the client.</p>
+            <p className="mt-3 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">Funds refunded to the client.</p>
           )}
 
           <div className="mt-4 flex flex-wrap items-end gap-3">
             {canQuote && (
               <form action={quoteAction} className="flex flex-wrap items-end gap-2">
                 <input type="hidden" name="order_id" value={o.id} />
-                <label className="text-xs text-muted-foreground">
+                <label className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                   Total
                   <Input name="price_total" type="number" min="1" required className="mt-0.5 w-28" />
                 </label>
-                <label className="text-xs text-muted-foreground">
+                <label className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                   Designer
                   <Input name="designer_payout" type="number" min="0" defaultValue="0" required className="mt-0.5 w-28" />
                 </label>
-                <label className="text-xs text-muted-foreground">
+                <label className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                   QC
                   <Input name="qc_payout" type="number" min="0" defaultValue="0" required className="mt-0.5 w-24" />
                 </label>
                 <Button type="submit" size="sm">
                   Set quote
                 </Button>
-                <span className="w-full text-xs text-muted-foreground">
+                <span className="w-full text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                   Amounts in cents (e.g. 10000 = $100.00). Platform = total − designer − QC.
                 </span>
               </form>
@@ -352,8 +352,8 @@ export function OrderDetail({
         <Panel title="Dispute">
           {openDispute ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
-              <p className="text-sm font-medium text-destructive">Dispute open</p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm">{openDispute.reason}</p>
+              <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium text-destructive">Dispute open</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-[length:var(--fs-3)] leading-[var(--lh-3)]">{openDispute.reason}</p>
               {(role === "OPS" || role === "FINANCE") && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {role === "OPS" && (
@@ -401,25 +401,25 @@ export function OrderDetail({
         <Panel title="Files">
           <ul className="divide-y divide-border">
             {visibleFiles.length === 0 && (
-              <li className="py-2 text-sm text-muted-foreground">No files yet.</li>
+              <li className="py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">No files yet.</li>
             )}
             {visibleFiles.map(({ version: v, grant, explanation }) => (
-              <li key={v.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+              <li key={v.id} className="flex items-center justify-between gap-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
                 <span className="flex min-w-0 flex-col">
                   <span className="flex items-center gap-2">
-                    <span className="tabular font-mono text-xs text-muted-foreground">
+                    <span className="tabular font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                       v{v.version_no}
                     </span>
                     <span>{FILE_KIND_LABELS[v.kind] ?? v.kind}</span>
                   </span>
                   {explanation && (
-                    <span className="mt-0.5 text-xs text-muted-foreground">{explanation}</span>
+                    <span className="mt-0.5 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">{explanation}</span>
                   )}
                 </span>
                 {grant === "ALLOW" ? (
                   <a
                     href={`/api/files/${v.id}`}
-                    className="shrink-0 text-sm text-primary hover:underline"
+                    className="shrink-0 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-primary hover:underline"
                   >
                     Download
                   </a>
@@ -428,7 +428,7 @@ export function OrderDetail({
                   // the work exists and what it is; the sentence above says what
                   // unlocks it. The API returns 404 for this row either way —
                   // this is presentation, not enforcement.
-                  <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
+                  <span className="shrink-0 text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">
                     Held
                   </span>
                 )}
@@ -445,7 +445,7 @@ export function OrderDetail({
                   required
                   accept=".png,.jpg,.jpeg,.step,.stp"
                   aria-label="Upload a file"
-                  className="text-sm"
+                  className="text-[length:var(--fs-3)] leading-[var(--lh-3)]"
                 />
                 {/* What this file IS decides who can download it and when, so it
                     is asked for at upload time rather than guessed from the
@@ -458,7 +458,7 @@ export function OrderDetail({
                     name="kind"
                     defaultValue="RENDER"
                     aria-label="What this file is"
-                    className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                    className="h-9 rounded-md border border-input bg-background px-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]"
                   >
                     {UPLOADABLE_KINDS.map((k) => (
                       <option key={k} value={k}>
@@ -471,7 +471,7 @@ export function OrderDetail({
                   Upload
                 </Button>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                 PNG, JPEG or STEP. Identifying metadata (EXIF, author and organisation fields) is
                 removed before the file is stored — formats we cannot clean are not accepted here.
               </p>
@@ -485,12 +485,12 @@ export function OrderDetail({
         <Panel
           title="Messages"
           aside={
-            <span className="text-xs text-muted-foreground">Identities hidden — role only</span>
+            <span className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">Identities hidden — role only</span>
           }
         >
           <ul className="space-y-2">
             {messages.length === 0 && (
-              <li className="text-sm text-muted-foreground">No messages yet.</li>
+              <li className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">No messages yet.</li>
             )}
             {messages.map((m) => {
               const mine = m.sender_id === userId;
@@ -498,11 +498,11 @@ export function OrderDetail({
               return (
                 <li key={m.id} className={mine ? "text-right" : "text-left"}>
                   <div
-                    className={`inline-block max-w-[85%] rounded-lg border px-3 py-2 text-left text-sm ${
+                    className={`inline-block max-w-[85%] rounded-lg border px-3 py-2 text-left text-[length:var(--fs-3)] leading-[var(--lh-3)] ${
                       mine ? "border-primary/20 bg-primary/5" : "border-border bg-subtle"
                     }`}
                   >
-                    <p className="text-xs font-medium text-muted-foreground">{who}</p>
+                    <p className="text-[length:var(--fs-2)] leading-[var(--lh-2)] font-medium text-muted-foreground">{who}</p>
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
                   </div>
                 </li>

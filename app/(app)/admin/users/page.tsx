@@ -68,7 +68,7 @@ export default async function AdminUsersPage({
       <main className="container max-w-3xl py-8">
         <h1 className="text-[length:var(--fs-6)] font-semibold tracking-[var(--ls-6)]">Access</h1>
         <ErrorPanel title="Not available to your role" message={error.message} className="mt-4" />
-        <Link href="/admin" className="mt-4 inline-block text-sm text-primary hover:underline">
+        <Link href="/admin" className="mt-4 inline-block text-[length:var(--fs-3)] leading-[var(--lh-3)] text-primary hover:underline">
           Back to the queue
         </Link>
       </main>
@@ -83,7 +83,7 @@ export default async function AdminUsersPage({
         <h1 className="text-[length:var(--fs-6)] font-semibold leading-[var(--lh-6)] tracking-[var(--ls-6)]">
           Access
         </h1>
-        <Link href="/admin" className="text-sm text-primary hover:underline">
+        <Link href="/admin" className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-primary hover:underline">
           Back to the queue
         </Link>
       </div>
@@ -106,7 +106,7 @@ export default async function AdminUsersPage({
           name="role"
           defaultValue={roleFilter ?? "ALL"}
           aria-label="Filter by role"
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          className="h-9 rounded-md border border-input bg-background px-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]"
         >
           <option value="ALL">All roles</option>
           {ROLES.map((r) => (
@@ -122,7 +122,7 @@ export default async function AdminUsersPage({
 
       <div className="mt-6 overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
         {users.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted-foreground">
+          <p className="p-6 text-center text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             No accounts match. {q ? "Try a shorter reference." : ""}
           </p>
         ) : (
@@ -159,7 +159,7 @@ export default async function AdminUsersPage({
                         name="role"
                         defaultValue={u.role}
                         aria-label={`Role for ${u.id}`}
-                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                        className="h-9 rounded-md border border-input bg-background px-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]"
                       >
                         {ROLES.map((r) => (
                           <option key={r} value={r}>

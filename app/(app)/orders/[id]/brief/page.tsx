@@ -95,8 +95,8 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
       <main className="container max-w-2xl py-8">
         <BackLink id={id} />
         <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
-          <p className="text-sm font-medium">Order not available</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">Order not available</p>
+          <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             This order isn&apos;t visible to your role, or the reference is wrong.
           </p>
         </div>
@@ -195,7 +195,7 @@ function BackLink({ id }: { id: string }) {
   return (
     <Link
       href={`/orders/${id}`}
-      className="inline-flex min-h-[var(--ctl)] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      className="inline-flex min-h-[var(--ctl)] items-center gap-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground transition-colors hover:text-foreground"
     >
       ← Back to the order
     </Link>
@@ -209,8 +209,8 @@ function ReadOnlyBrief({ spec, accents }: { spec: SpecRow | null; accents: Accen
   if (!spec) {
     return (
       <div className="rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
-        <p className="text-sm font-medium">No brief yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">No brief yet</p>
+        <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
           The client has not filled this in.
         </p>
       </div>

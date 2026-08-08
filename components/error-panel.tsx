@@ -13,7 +13,7 @@ export function ErrorPanel({
   return (
     <div
       className={cn(
-        "rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive",
+        "rounded-md border border-destructive/30 bg-destructive/5 p-4 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive",
         className,
       )}
     >

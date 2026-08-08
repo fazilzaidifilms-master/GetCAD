@@ -32,11 +32,21 @@ import {
  * another's orders).
  */
 
-type State = "checking" | "unsupported" | "needs-install" | "blocked" | "off" | "on" | "working";
+type State =
+  | "checking"
+  | "unsupported"
+  | "needs-install"
+  | "blocked"
+  | "off"
+  | "on"
+  | "working";
 
 /** VAPID keys are base64url; PushManager wants raw bytes. */
 function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  const padded = base64.padEnd(
+    base64.length + ((4 - (base64.length % 4)) % 4),
+    "=",
+  );
   const raw = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
   const bytes = new Uint8Array(new ArrayBuffer(raw.length));
   for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
@@ -46,7 +56,8 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
 function isStandalone(): boolean {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+      true
   );
 }
 
@@ -59,7 +70,11 @@ export function PushOptIn({ publicKey }: { publicKey: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const readCurrentState = useCallback(async () => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    if (
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window) ||
+      !("Notification" in window)
+    ) {
       // iOS in a tab lands here too — Safari hides PushManager entirely until
       // the app is installed, so the more useful message wins.
       setState(isIos() && !isStandalone() ? "needs-install" : "unsupported");
@@ -91,7 +106,8 @@ export function PushOptIn({ publicKey }: { publicKey: string }) {
       if (event.data?.type === "PUSH_SUBSCRIPTION_CHANGED") void enable();
     };
     navigator.serviceWorker.addEventListener("message", onMessage);
-    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+    return () =>
+      navigator.serviceWorker.removeEventListener("message", onMessage);
     // `enable` is stable for the lifetime of this component.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -125,7 +141,9 @@ export function PushOptIn({ publicKey }: { publicKey: string }) {
       });
       setState("on");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't turn on notifications.");
+      setError(
+        e instanceof Error ? e.message : "Couldn't turn on notifications.",
+      );
       setState("off");
     }
   }
@@ -145,7 +163,9 @@ export function PushOptIn({ publicKey }: { publicKey: string }) {
       }
       setState("off");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't turn off notifications.");
+      setError(
+        e instanceof Error ? e.message : "Couldn't turn off notifications.",
+      );
       setState("on");
     }
   }
@@ -156,8 +176,10 @@ export function PushOptIn({ publicKey }: { publicKey: string }) {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium">Notifications on this device</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">
+            Notifications on this device
+          </p>
+          <p className="mt-0.5 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
             {state === "needs-install"
               ? "On iPhone and iPad, add the app to your home screen first — Safari only allows notifications for installed apps."
               : state === "blocked"
@@ -176,7 +198,11 @@ export function PushOptIn({ publicKey }: { publicKey: string }) {
             disabled={state === "working"}
             onClick={() => void (state === "on" ? disable() : enable())}
           >
-            {state === "working" ? "Working…" : state === "on" ? "Turn off" : "Turn on"}
+            {state === "working"
+              ? "Working…"
+              : state === "on"
+                ? "Turn off"
+                : "Turn on"}
           </Button>
         ) : null}
       </div>
@@ -184,13 +210,17 @@ export function PushOptIn({ publicKey }: { publicKey: string }) {
       {/* Said once, here, rather than in the notification itself — where it
           would be the disclosure it is warning about. */}
       {state === "on" ? (
-        <p className="text-xs text-muted-foreground">
-          Notifications never name the other party or show amounts — they say only what happened, so
-          nothing sensitive appears on a locked screen.
+        <p className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
+          Notifications never name the other party or show amounts — they say
+          only what happened, so nothing sensitive appears on a locked screen.
         </p>
       ) : null}
 
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-destructive">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

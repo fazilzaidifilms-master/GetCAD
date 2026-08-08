@@ -15,7 +15,13 @@ export function Stepper({
   className?: string;
 }) {
   return (
-    <ol className={cn("flex items-center gap-2 text-sm", className)} aria-label="Progress">
+    <ol
+      className={cn(
+        "flex items-center gap-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]",
+        className,
+      )}
+      aria-label="Progress"
+    >
       {steps.map((step, i) => {
         const done = i < current;
         const active = i === current;
@@ -24,7 +30,7 @@ export function Stepper({
             <span
               aria-current={active ? "step" : undefined}
               className={cn(
-                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[length:var(--fs-2)] leading-[var(--lh-2)] font-medium",
                 done
                   ? "bg-primary text-primary-foreground"
                   : active
@@ -34,7 +40,13 @@ export function Stepper({
             >
               {done ? "✓" : i + 1}
             </span>
-            <span className={cn(active ? "font-medium text-foreground" : "text-muted-foreground")}>
+            <span
+              className={cn(
+                active
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground",
+              )}
+            >
               {step.label}
             </span>
             {i < steps.length - 1 && (

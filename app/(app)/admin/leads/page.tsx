@@ -52,8 +52,8 @@ export default async function LeadsPage({
     const denied = /only OPS or SALES/i.test(error.message);
     return (
       <main className="container max-w-2xl py-12">
-        <h1 className="text-xl font-semibold tracking-tight">Contact leads</h1>
-        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-sm text-muted-foreground">
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Contact leads</h1>
+        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
           {denied
             ? "This inbox is for OPS and SALES. Switch to one of those roles to work leads."
             : `Couldn't load leads: ${error.message}`}
@@ -67,8 +67,8 @@ export default async function LeadsPage({
   return (
     <main className="container max-w-3xl py-8">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Contact leads</h1>
-        <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Contact leads</h1>
+        <Link href="/admin" className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground hover:text-foreground">
           Staff console →
         </Link>
       </div>
@@ -80,7 +80,7 @@ export default async function LeadsPage({
             <Link
               key={f.key || "all"}
               href={`/admin/leads${f.key ? `?status=${f.key}` : "?status="}`}
-              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+              className={`rounded-full border px-3 py-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] transition-colors ${
                 active
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:text-foreground"
@@ -94,8 +94,8 @@ export default async function LeadsPage({
 
       {leads.length === 0 ? (
         <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
-          <p className="text-sm font-medium">Nothing here</p>
-          <p className="mt-1 text-sm text-muted-foreground">No leads in this state.</p>
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">Nothing here</p>
+          <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">No leads in this state.</p>
         </div>
       ) : (
         <ul className="mt-6 space-y-4">
@@ -107,7 +107,7 @@ export default async function LeadsPage({
                     {lead.name}
                     {lead.company && <span className="text-muted-foreground"> · {lead.company}</span>}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
                     <a className="underline underline-offset-2" href={`mailto:${lead.email}`}>
                       {lead.email}
                     </a>{" "}
@@ -119,7 +119,7 @@ export default async function LeadsPage({
                 </Badge>
               </div>
 
-              <p className="mt-3 whitespace-pre-wrap break-words text-sm">{lead.message}</p>
+              <p className="mt-3 whitespace-pre-wrap break-words text-[length:var(--fs-3)] leading-[var(--lh-3)]">{lead.message}</p>
 
               <div className="mt-3">
                 <LeadControls id={lead.id} status={lead.status} />

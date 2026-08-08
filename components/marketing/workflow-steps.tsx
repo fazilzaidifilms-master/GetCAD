@@ -23,7 +23,8 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     name: "Designer Assignment",
-    summary: "A vetted designer is assigned. Identities stay protected in both directions.",
+    summary:
+      "A vetted designer is assigned. Identities stay protected in both directions.",
     detail:
       "The order is assigned to a designer who has completed onboarding and accepted the platform's operating agreement. The client never learns who the designer is; the designer never learns who the client is.",
   },
@@ -35,7 +36,8 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     name: "Independent QC",
-    summary: "A reviewer uninvolved in the design checks the work before the client sees it.",
+    summary:
+      "A reviewer uninvolved in the design checks the work before the client sees it.",
     detail:
       "Before a client previews anything, an independent reviewer — never the original designer, never identified to either party — checks the model against manufacturing and quality standards. This gate cannot be skipped.",
   },
@@ -47,7 +49,8 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     name: "Delivery",
-    summary: "The client receives the validated files. Every step is on record.",
+    summary:
+      "The client receives the validated files. Every step is on record.",
     detail:
       "The client receives the finished, QC-passed files. The full sequence of what happened and when is recorded and available — nothing about how the order was fulfilled is left implicit.",
   },

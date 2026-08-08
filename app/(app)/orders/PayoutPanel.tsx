@@ -49,34 +49,34 @@ export function PayoutPanel({
 
   return (
     <div className="space-y-3">
-      <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 text-[length:var(--fs-3)] leading-[var(--lh-3)] sm:grid-cols-4">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Owed</dt>
+          <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">Owed</dt>
           <dd className="tabular mt-0.5 font-mono">{formatMoney(state.owed, currency)}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Paid</dt>
+          <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">Paid</dt>
           <dd className="tabular mt-0.5 font-mono">{formatMoney(state.paid, currency)}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">In flight</dt>
+          <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">In flight</dt>
           <dd className="tabular mt-0.5 font-mono">{formatMoney(state.in_flight, currency)}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Failed</dt>
+          <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">Failed</dt>
           <dd className="tabular mt-0.5 font-mono">{formatMoney(state.failed, currency)}</dd>
         </div>
       </dl>
 
       {state.reversed > 0 && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
           {formatMoney(state.reversed, currency)} came back from the processor and is in escrow
           again. It can be released or refunded.
         </p>
       )}
 
       {outstanding > 0 && state.in_flight === 0 && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
           {formatMoney(outstanding, currency)} is owed and has not been sent.
         </p>
       )}
@@ -109,8 +109,8 @@ export function PayoutPanel({
         <p
           className={
             message.ok
-              ? "text-sm text-muted-foreground"
-              : "rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+              ? "text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground"
+              : "rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive"
           }
         >
           {message.text}

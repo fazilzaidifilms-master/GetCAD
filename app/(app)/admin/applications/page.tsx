@@ -70,8 +70,8 @@ export default async function ApplicationsPage({
     const denied = /only OPS or SALES/i.test(error.message);
     return (
       <main className="container max-w-2xl py-12">
-        <h1 className="text-xl font-semibold tracking-tight">Designer applications</h1>
-        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-sm text-muted-foreground">
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Designer applications</h1>
+        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
           {denied
             ? "This inbox is for OPS and SALES. Switch to one of those roles to review applications."
             : `Couldn't load applications: ${error.message}`}
@@ -104,8 +104,8 @@ export default async function ApplicationsPage({
   return (
     <main className="container max-w-3xl py-8">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Designer applications</h1>
-        <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Designer applications</h1>
+        <Link href="/admin" className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground hover:text-foreground">
           Staff console →
         </Link>
       </div>
@@ -117,7 +117,7 @@ export default async function ApplicationsPage({
             <Link
               key={f.key || "all"}
               href={`/admin/applications${f.key ? `?status=${f.key}` : "?status="}`}
-              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+              className={`rounded-full border px-3 py-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] transition-colors ${
                 active
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:text-foreground"
@@ -131,8 +131,8 @@ export default async function ApplicationsPage({
 
       {applications.length === 0 ? (
         <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
-          <p className="text-sm font-medium">Nothing here</p>
-          <p className="mt-1 text-sm text-muted-foreground">No applications in this state.</p>
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">Nothing here</p>
+          <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">No applications in this state.</p>
         </div>
       ) : (
         <ul className="mt-6 space-y-4">
@@ -141,7 +141,7 @@ export default async function ApplicationsPage({
               <div className="flex items-baseline justify-between gap-3">
                 <div>
                   <p className="font-medium">{app.full_name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
                     {app.country} · {app.years_experience} yr
                     {app.years_experience === 1 ? "" : "s"} · {app.primary_software}
                   </p>
@@ -151,7 +151,7 @@ export default async function ApplicationsPage({
                 </Badge>
               </div>
 
-              <dl className="mt-3 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+              <dl className="mt-3 grid gap-x-4 gap-y-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] sm:grid-cols-2">
                 <div className="flex gap-2">
                   <dt className="text-muted-foreground">Email</dt>
                   <dd className="truncate">
@@ -174,7 +174,7 @@ export default async function ApplicationsPage({
                 </div>
               </dl>
 
-              <div className="mt-3 text-sm">
+              <div className="mt-3 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
                 <span className="text-muted-foreground">Portfolio: </span>
                 {app.portfolio_url ? (
                   <a
@@ -206,7 +206,7 @@ export default async function ApplicationsPage({
               </div>
 
               {app.review_notes && (
-                <p className="mt-3 rounded-md border border-border bg-subtle px-3 py-2 text-sm">
+                <p className="mt-3 rounded-md border border-border bg-subtle px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
                   <span className="text-muted-foreground">Note: </span>
                   {app.review_notes}
                 </p>

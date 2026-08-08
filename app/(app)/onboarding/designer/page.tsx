@@ -44,7 +44,7 @@ function renderMarkdown(body: string): ReactNode {
   return lines.map((line, i) => {
     if (line.startsWith("# ")) {
       return (
-        <h2 key={i} className="mt-4 text-base font-semibold">
+        <h2 key={i} className="mt-4 text-[length:var(--fs-4)] leading-[var(--lh-4)] font-semibold">
           {renderInline(line.slice(2))}
         </h2>
       );
@@ -66,7 +66,7 @@ function renderMarkdown(body: string): ReactNode {
     }
     if (line.trim() === "") return <div key={i} className="h-2" />;
     return (
-      <p key={i} className="text-sm leading-relaxed">
+      <p key={i} className="text-[length:var(--fs-b)] leading-[var(--lh-b)]">
         {renderInline(line)}
       </p>
     );
@@ -95,7 +95,7 @@ export default async function DesignerOnboardingPage() {
   if (queryError) {
     return (
       <main className="container max-w-2xl py-8">
-        <h1 className="text-xl font-semibold tracking-tight">Become a designer</h1>
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Become a designer</h1>
         <ErrorPanel
           title="Couldn't load this page"
           message={`${queryError.message} — reload the page to try again.`}
@@ -140,8 +140,8 @@ export default async function DesignerOnboardingPage() {
   return (
     <main className="container max-w-2xl py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Become a designer</h1>
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+        <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Become a designer</h1>
+        <Link href="/dashboard" className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground hover:text-foreground">
           Dashboard
         </Link>
       </div>
@@ -154,14 +154,14 @@ export default async function DesignerOnboardingPage() {
             <Badge className={TONE_SURFACE.success}>
               Active
             </Badge>
-            <p className="text-sm font-medium">You&apos;re onboarded</p>
+            <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">You&apos;re onboarded</p>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             You have signed <span className="font-medium text-foreground">{doc?.title}</span> (
             <span className="tabular font-mono">{doc?.version}</span>) and are eligible to be
             assigned work.
           </p>
-          <Link href="/orders" className="mt-3 inline-block text-sm text-primary hover:underline">
+          <Link href="/orders" className="mt-3 inline-block text-[length:var(--fs-3)] leading-[var(--lh-3)] text-primary hover:underline">
             Go to orders →
           </Link>
         </section>
@@ -170,8 +170,8 @@ export default async function DesignerOnboardingPage() {
       {stage === "sign" && doc && (
         <section className="mt-6 space-y-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <div>
-            <p className="text-sm font-medium">{doc.title}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">{doc.title}</p>
+            <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
               Read the agreement below and sign to become assignable. Your signature is recorded
               against this exact version and its cryptographic fingerprint — if the text changes,
               you sign again.
@@ -181,7 +181,7 @@ export default async function DesignerOnboardingPage() {
             {renderMarkdown(doc.body)}
           </article>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="tabular font-mono text-xs text-muted-foreground">
+            <p className="tabular font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
               {doc.version} · {doc.content_sha256.slice(0, 16)}…
             </p>
             <form action={signAgreementAction}>
@@ -193,7 +193,7 @@ export default async function DesignerOnboardingPage() {
       )}
 
       {stage === "no-doc" && (
-        <section className="mt-6 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <section className="mt-6 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
           No designer agreement is published yet — please check back shortly.
         </section>
       )}
@@ -202,7 +202,7 @@ export default async function DesignerOnboardingPage() {
           currently DESIGNER/ACTIVE (e.g. changed after signing). Surfaced
           explicitly instead of silently showing nothing. */}
       {stage === "mismatch" && (
-        <section className={`mt-6 rounded-[var(--r-md)] border p-4 text-sm ${TONE_SURFACE.attention}`}>
+        <section className={`mt-6 rounded-[var(--r-md)] border p-4 text-[length:var(--fs-3)] leading-[var(--lh-3)] ${TONE_SURFACE.attention}`}>
           <p className="font-medium">Signed, but not currently active as a designer</p>
           <p className="mt-1 opacity-90">
             You&apos;ve signed the current agreement, but your account&apos;s role is{" "}
@@ -216,7 +216,7 @@ export default async function DesignerOnboardingPage() {
 
       {stage === "apply" && (
         <section className="mt-6 space-y-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
             Apply to join as a designer. After applying you&apos;ll review and sign the designer
             agreement; you can&apos;t be assigned work until you do.
           </p>

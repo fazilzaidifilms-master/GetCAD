@@ -73,7 +73,7 @@ export default async function DashboardPage() {
           Dashboard
         </h1>
         {me && (
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
             <Badge variant="muted">{me.role}</Badge>
             <Badge variant="outline">{me.status}</Badge>
           </div>

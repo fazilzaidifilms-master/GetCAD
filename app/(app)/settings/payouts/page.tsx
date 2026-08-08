@@ -69,14 +69,14 @@ export default async function PayoutSettingsPage() {
 
   return (
     <main className="container max-w-2xl py-8">
-      <h1 className="text-xl font-semibold tracking-tight">Payout account</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <h1 className="text-[length:var(--fs-6)] leading-[var(--lh-6)] tracking-[var(--ls-6)] font-semibold">Payout account</h1>
+      <p className="mt-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
         Where we send your earnings once an order is closed and released. Your bank details are
         never shown to clients and are not stored with your order history.
       </p>
 
       {error && (
-        <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
           Couldn&apos;t load your payout account: {error.message}
         </div>
       )}
@@ -84,19 +84,19 @@ export default async function PayoutSettingsPage() {
       {account && (
         <section className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-medium">On file</p>
+            <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">On file</p>
             <Badge variant={STATUS_TONE[account.status]}>
               {PAYOUT_STATUS_LABELS[account.status]}
             </Badge>
           </div>
 
-          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+          <dl className="mt-3 grid gap-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] sm:grid-cols-2">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Account holder</dt>
+              <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">Account holder</dt>
               <dd className="mt-0.5">{account.beneficiary_name}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Account</dt>
+              <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">Account</dt>
               {/* The server returns only the last four — never the full
                   number — so this masks a fragment, not a secret. */}
               <dd className="tabular mt-0.5 font-mono">
@@ -104,30 +104,30 @@ export default async function PayoutSettingsPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">IFSC</dt>
+              <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">IFSC</dt>
               <dd className="tabular mt-0.5 font-mono">{account.ifsc}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">Type</dt>
+              <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">Type</dt>
               <dd className="mt-0.5">
                 {ACCOUNT_TYPE_LABELS[account.account_type as keyof typeof ACCOUNT_TYPE_LABELS] ??
                   account.account_type}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">PAN</dt>
+              <dt className="text-[length:var(--fs-2)] leading-[var(--lh-2)] uppercase tracking-wide text-muted-foreground">PAN</dt>
               <dd className="tabular mt-0.5 font-mono">{maskFromLast4(account.pan_last4)}</dd>
             </div>
           </dl>
 
           {account.status === "PENDING_VERIFICATION" && (
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
               We&apos;re confirming these details with our payment processor. Payouts are released
               once that completes.
             </p>
           )}
           {account.status === "REJECTED" && account.rejection_reason && (
-            <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
               {account.rejection_reason}
             </div>
           )}
@@ -135,8 +135,8 @@ export default async function PayoutSettingsPage() {
       )}
 
       <section className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
-        <p className="text-sm font-medium">{account ? "Update your details" : "Add your details"}</p>
-        <p className="mt-1 mb-4 text-sm text-muted-foreground">
+        <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">{account ? "Update your details" : "Add your details"}</p>
+        <p className="mt-1 mb-4 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
           These must match your bank exactly. A mismatch between the name, account number and IFSC
           is the most common reason a payout fails.
         </p>
@@ -146,12 +146,12 @@ export default async function PayoutSettingsPage() {
       {payouts.length > 0 && (
         <section className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
           <div className="border-b border-border px-4 py-3">
-            <p className="text-sm font-medium">Your payouts</p>
+            <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">Your payouts</p>
           </div>
           <ul className="divide-y divide-border">
             {payouts.map((p, i) => (
-              <li key={`${p.order_id}-${i}`} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                <span className="tabular hidden font-mono text-xs text-muted-foreground sm:inline">
+              <li key={`${p.order_id}-${i}`} className="flex items-center gap-3 px-4 py-2.5 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
+                <span className="tabular hidden font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground sm:inline">
                   {p.order_id.slice(0, 10)}…
                 </span>
                 <span className="tabular ml-auto font-mono font-medium">
@@ -163,14 +163,14 @@ export default async function PayoutSettingsPage() {
               </li>
             ))}
           </ul>
-          <p className="border-t border-border px-4 py-2.5 text-xs text-muted-foreground">
+          <p className="border-t border-border px-4 py-2.5 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
             A payout is sent once an order closes and finance releases it. Settlement to your bank
             usually takes a further working day or two.
           </p>
         </section>
       )}
 
-      <p className="mt-6 text-xs text-muted-foreground">
+      <p className="mt-6 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
         We currently pay Indian bank accounts only. If you bank outside India, tell us — we&apos;ll
         let you know when international payouts are available.
       </p>

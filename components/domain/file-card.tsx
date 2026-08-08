@@ -67,7 +67,10 @@ export function FileCard({
         {/* Filenames are long and unbreakable; truncation is the norm, not the
             exception, so the full name stays available on hover and to a
             screen reader. */}
-        <p className="truncate text-[length:var(--fs-4)] font-medium" title={name}>
+        <p
+          className="truncate text-[length:var(--fs-4)] font-medium"
+          title={name}
+        >
           {name}
         </p>
         <p className="text-[length:var(--fs-2)] text-muted-foreground">
@@ -101,9 +104,14 @@ export function FileCard({
  */
 export function FileNotice({ className }: { className?: string }) {
   return (
-    <p className={cn("text-[length:var(--fs-2)] text-muted-foreground", className)}>
-      Links expire 15 minutes after you tap Get. Authoring metadata is stripped from every file
-      before storage.
+    <p
+      className={cn(
+        "text-[length:var(--fs-2)] text-muted-foreground",
+        className,
+      )}
+    >
+      Links expire 15 minutes after you tap Get. Authoring metadata is stripped
+      from every file before storage.
     </p>
   );
 }

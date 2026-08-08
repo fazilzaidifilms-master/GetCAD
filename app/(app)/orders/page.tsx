@@ -76,7 +76,7 @@ export default async function OrdersPage({
         <h1 className="text-[length:var(--fs-6)] font-semibold leading-[var(--lh-6)] tracking-[var(--ls-6)]">
           Orders
         </h1>
-        <span className="tabular text-sm text-muted-foreground">
+        <span className="tabular text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
           {orders.length} order{orders.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -96,8 +96,8 @@ export default async function OrdersPage({
       <div className="mt-6 overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
         {orders.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-sm font-medium">No orders yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Create your first order above.</p>
+            <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-medium">No orders yet</p>
+            <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">Create your first order above.</p>
           </div>
         ) : (
           <ul className="divide-y divide-border">

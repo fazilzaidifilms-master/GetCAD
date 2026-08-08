@@ -29,7 +29,7 @@ export function OrderTimeline({
   const steps = buildTimeline(rows);
 
   if (steps.length === 0) {
-    return <p className="text-sm text-muted-foreground">No history yet.</p>;
+    return <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">No history yet.</p>;
   }
 
   return (
@@ -48,15 +48,15 @@ export function OrderTimeline({
                 className={`rounded-[var(--r-md)] border p-3 ${TONE_SURFACE[QC_TONE[step.qcOutcome]]}`}
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-sm font-semibold">Independent QC review</p>
-                  <time className="tabular shrink-0 font-mono text-xs opacity-80">
+                  <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)] font-semibold">Independent QC review</p>
+                  <time className="tabular shrink-0 font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] opacity-80">
                     {formatWhen(step.createdAt)}
                   </time>
                 </div>
-                <p className="mt-0.5 text-sm">
+                <p className="mt-0.5 text-[length:var(--fs-3)] leading-[var(--lh-3)]">
                   {step.qcOutcome === "passed" ? "Passed" : "Revision requested"}
                 </p>
-                <p className="mt-1 text-xs opacity-75">Reviewed by role: QC · identity protected</p>
+                <p className="mt-1 text-[length:var(--fs-2)] leading-[var(--lh-2)] opacity-75">Reviewed by role: QC · identity protected</p>
               </div>
             </li>
           );
@@ -69,7 +69,7 @@ export function OrderTimeline({
               aria-hidden
             />
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm">
+              <p className="text-[length:var(--fs-3)] leading-[var(--lh-3)]">
                 {step.label}
                 {step.amount != null && (
                   <span className="tabular ml-1.5 font-mono text-muted-foreground">
@@ -77,11 +77,11 @@ export function OrderTimeline({
                   </span>
                 )}
               </p>
-              <time className="tabular shrink-0 font-mono text-xs text-muted-foreground">
+              <time className="tabular shrink-0 font-mono text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
                 {formatWhen(step.createdAt)}
               </time>
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">{step.actorRole}</p>
+            <p className="mt-0.5 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">{step.actorRole}</p>
           </li>
         );
       })}

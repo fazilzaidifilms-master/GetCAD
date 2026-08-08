@@ -64,8 +64,8 @@ export function ConnectionStatus({ className }: { className?: string }) {
         className ?? "top-14",
       )}
     >
-      You&apos;re offline. Nothing will save until you&apos;re back — anything you type stays on
-      screen.
+      You&apos;re offline. Nothing will save until you&apos;re back — anything
+      you type stays on screen.
     </div>
   );
 }

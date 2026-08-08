@@ -19,11 +19,11 @@ import {
 import { savePayoutAccountAction } from "./actions";
 
 const selectCls =
-  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
+  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1 text-xs text-destructive">{message}</p>;
+  return <p className="mt-1 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-destructive">{message}</p>;
 }
 
 export function PayoutAccountForm({ hasExisting }: { hasExisting: boolean }) {
@@ -142,14 +142,14 @@ export function PayoutAccountForm({ hasExisting }: { hasExisting: boolean }) {
           className="uppercase"
           {...register("pan")}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
           Required by our payment processor to send money to an Indian bank account.
         </p>
         <FieldError message={errors.pan?.message} />
       </div>
 
       {serverError && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-destructive">
           {serverError}
         </div>
       )}
@@ -159,7 +159,7 @@ export function PayoutAccountForm({ hasExisting }: { hasExisting: boolean }) {
       </Button>
 
       {hasExisting && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[length:var(--fs-2)] leading-[var(--lh-2)] text-muted-foreground">
           Saving new details replaces the ones on file and sends them for verification again.
         </p>
       )}

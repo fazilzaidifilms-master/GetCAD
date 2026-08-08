@@ -46,7 +46,8 @@ export function InstallHint() {
         userAgent: window.navigator.userAgent,
         standalone:
           window.matchMedia("(display-mode: standalone)").matches ||
-          (window.navigator as Navigator & { standalone?: boolean }).standalone === true,
+          (window.navigator as Navigator & { standalone?: boolean })
+            .standalone === true,
         hasPrompt,
         maxTouchPoints: window.navigator.maxTouchPoints,
       });
@@ -73,7 +74,8 @@ export function InstallHint() {
     };
   }, []);
 
-  if (advice === null || advice === "INSTALLED" || advice === "NOT_AVAILABLE") return null;
+  if (advice === null || advice === "INSTALLED" || advice === "NOT_AVAILABLE")
+    return null;
 
   if (advice === "PROMPT_READY" && deferred) {
     return (
@@ -100,13 +102,17 @@ export function InstallHint() {
   if (advice === "IOS_WRONG_BROWSER") {
     return (
       <Wrap>
-        <p className="text-[length:var(--fs-3)] font-medium">Open this in Safari to install</p>
+        <p className="text-[length:var(--fs-3)] font-medium">
+          Open this in Safari to install
+        </p>
         <p className="mt-1.5 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
-          On iPhone and iPad, only Safari can install an app. Adding to the Home Screen from this
-          browser makes a shortcut that reopens in a browser — not the app.
+          On iPhone and iPad, only Safari can install an app. Adding to the Home
+          Screen from this browser makes a shortcut that reopens in a browser —
+          not the app.
         </p>
         <p className="mt-2.5 text-[length:var(--fs-2)] text-muted-foreground">
-          Copy this page&apos;s address, open Safari, paste it, then follow the steps there.
+          Copy this page&apos;s address, open Safari, paste it, then follow the
+          steps there.
         </p>
       </Wrap>
     );
@@ -115,24 +121,29 @@ export function InstallHint() {
   // IOS_SAFARI — the Share-sheet route, shown as steps rather than a sentence.
   return (
     <Wrap>
-      <p className="text-[length:var(--fs-3)] font-medium">Install on this iPhone</p>
+      <p className="text-[length:var(--fs-3)] font-medium">
+        Install on this iPhone
+      </p>
       <p className="mt-1.5 text-[length:var(--fs-2)] text-muted-foreground">
-        Apple gives websites no install button, so this is the only way — it makes a real app, not a
-        bookmark.
+        Apple gives websites no install button, so this is the only way — it
+        makes a real app, not a bookmark.
       </p>
 
       <ol className="mt-3 flex flex-col gap-2.5">
         <Step n={1}>
-          Tap the <ShareGlyph /> <strong className="font-medium text-foreground">Share</strong> button
+          Tap the <ShareGlyph />{" "}
+          <strong className="font-medium text-foreground">Share</strong> button
           in Safari&apos;s toolbar
         </Step>
         <Step n={2}>
           Scroll down and choose{" "}
-          <strong className="font-medium text-foreground">Add to Home Screen</strong>
+          <strong className="font-medium text-foreground">
+            Add to Home Screen
+          </strong>
         </Step>
         <Step n={3}>
-          Tap <strong className="font-medium text-foreground">Add</strong>, then open the app from
-          your Home Screen
+          Tap <strong className="font-medium text-foreground">Add</strong>, then
+          open the app from your Home Screen
         </Step>
       </ol>
 
@@ -188,6 +199,8 @@ function ShareGlyph() {
 
 function Wrap({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">{children}</div>
+    <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
+      {children}
+    </div>
   );
 }
