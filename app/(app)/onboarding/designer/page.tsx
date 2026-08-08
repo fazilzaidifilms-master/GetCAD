@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Stepper } from "@/components/stepper";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
+import { TONE_SURFACE } from "@/lib/tone";
 
 import { applyAsDesignerAction, signAgreementAction } from "./actions";
 
@@ -150,7 +151,7 @@ export default async function DesignerOnboardingPage() {
       {stage === "active" && (
         <section className="mt-6 rounded-lg border border-border bg-card p-5">
           <div className="flex items-center gap-2">
-            <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+            <Badge className={TONE_SURFACE.success}>
               Active
             </Badge>
             <p className="text-sm font-medium">You&apos;re onboarded</p>
@@ -201,9 +202,9 @@ export default async function DesignerOnboardingPage() {
           currently DESIGNER/ACTIVE (e.g. changed after signing). Surfaced
           explicitly instead of silently showing nothing. */}
       {stage === "mismatch" && (
-        <section className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-700 dark:text-amber-400">
+        <section className={`mt-6 rounded-[var(--r-md)] border p-4 text-sm ${TONE_SURFACE.attention}`}>
           <p className="font-medium">Signed, but not currently active as a designer</p>
-          <p className="mt-1 text-amber-700/90 dark:text-amber-400/90">
+          <p className="mt-1 opacity-90">
             You&apos;ve signed the current agreement, but your account&apos;s role is{" "}
             <span className="font-mono">{me?.role ?? "unknown"}</span> and status is{" "}
             <span className="font-mono">{me?.status ?? "unknown"}</span> — designers must be{" "}

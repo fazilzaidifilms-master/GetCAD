@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TONE_TEXT } from "@/lib/tone";
 import { cn } from "@/lib/utils";
 
 import { saveBriefAction } from "./actions";
@@ -699,9 +700,9 @@ function QualityPanel({
 }) {
   const tone =
     quality.grade === "Incomplete"
-      ? "text-destructive"
+      ? TONE_TEXT.danger
       : quality.grade === "Excellent"
-        ? "text-emerald-600 dark:text-emerald-400"
+        ? TONE_TEXT.success
         : "text-foreground";
 
   return (

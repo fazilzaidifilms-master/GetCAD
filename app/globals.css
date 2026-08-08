@@ -19,7 +19,17 @@
     --popover-foreground: 0 0% 9%;
 
     --muted: 0 0% 96.5%;
-    --muted-foreground: 0 0% 42%;
+    /*
+     * 7.0:1 on white, up from 5.33:1.
+     *
+     * This is the single highest-leverage number in the file. Muted foreground
+     * is not decoration here — it carries timestamps, amounts in escrow, order
+     * meta, the inactive navigation labels, half the captions in the product.
+     * At 42% it cleared AA and nothing more, which is a standard written for
+     * "legible" rather than "comfortable", on a phone, in a showroom, for
+     * someone in their fifties. 35% is the AAA threshold exactly.
+     */
+    --muted-foreground: 0 0% 35%;
     --subtle: 0 0% 98%; /* faint panel fill */
 
     --secondary: 0 0% 96.5%;
@@ -27,8 +37,20 @@
     --accent: 0 0% 94.5%; /* hover surface (shadcn convention) */
     --accent-foreground: 0 0% 9%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 87%;
+    /*
+     * Two different jobs, and they were nearly the same colour.
+     *
+     * --border draws dividers and card edges. It is decoration and stays quiet,
+     * though 90% was quiet to the point of absence on a bright screen.
+     *
+     * --input draws the boundary of a CONTROL — it is what tells you where a
+     * text field is before you click it, and WCAG 1.4.11 asks 3:1 of it for
+     * exactly that reason. At 87% it was 1.35:1: on a laptop outdoors the form
+     * was a set of invisible boxes. 58% is 3.03:1, the minimum that standard
+     * accepts, and it is why the forms suddenly look like forms.
+     */
+    --border: 0 0% 85%;
+    --input: 0 0% 58%;
 
     /* The single functional accent — #2F51D9, from the design system. */
     --primary: 228 69% 52%;
@@ -54,7 +76,7 @@
     --popover-foreground: 0 0% 96%;
 
     --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 62%;
+    --muted-foreground: 0 0% 68%; /* 8.4:1 on the dark ground, was 6.99:1 */
     --subtle: 0 0% 11%;
 
     --secondary: 0 0% 15%;
@@ -62,14 +84,33 @@
     --accent: 0 0% 17%;
     --accent-foreground: 0 0% 96%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 22%;
+    /*
+     * Re-derived, not inverted. A light border on a dark ground needs more
+     * lightness difference than a dark border on a light one to read as the
+     * same edge, and --input carries the same 3:1 obligation here: 22% was
+     * 1.6:1 against the background, which is a field you find by clicking
+     * around. 38% is 3.02:1.
+     */
+    --border: 0 0% 24%;
+    --input: 0 0% 38%;
 
     --primary: 227 86% 72%; /* #7B96F5 */
-    --primary-foreground: 0 0% 100%;
+    /*
+     * DARK INK ON THE LIGHT ACCENT — the one real defect this pass found.
+     *
+     * Dark mode lightens the accent to #7B96F5 so it reads against a near-black
+     * ground, which is right. The foreground stayed white, which is not: white
+     * on #7B96F5 is 2.82:1, and every primary button in dark mode — including
+     * "Approve", "Pay" and "Release" — had a label you had to lean in to read.
+     * Inverting it costs nothing and lands at 6.4:1.
+     */
+    --primary-foreground: 228 60% 12%;
     --ring: 227 86% 72%;
 
-    --destructive: 0 70% 55%;
+    /* 50%, not 55%: white on the 55% fill was 4.39:1, just under AA, and this
+     * is the colour on "Refund" and "Cancel". Still 3.8:1 against the
+     * background, so the button itself remains obvious. */
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
   }
 
@@ -171,7 +212,71 @@
     --e-0: none;
     --e-1: 0 1px 2px rgba(18, 19, 22, 0.05);
     --e-2: 0 4px 14px -3px rgba(18, 19, 22, 0.09);
-    --focus-ring: 0 0 0 3px rgba(47, 81, 217, 0.22);
+    --focus-ring: 0 0 0 3px rgba(47, 81, 217, 0.34);
+
+    /*
+     * ------------------------------------------------------------ status --
+     *
+     * SEVENTEEN STATUSES, FIVE COLOURS. `core/orders/status.ts` already maps
+     * every order status onto one of five tones; what did not exist was a
+     * single definition of what those five tones LOOK like. Five files each
+     * reached for a raw Tailwind swatch and each picked its own recipe — a 5%
+     * fill here and a 10% fill there, a /25 border here and a /30 there,
+     * amber-700 in one place and amber-600 in another. The result read as more
+     * than five states, which defeats the point of having five.
+     *
+     * Now: one definition, three values per family, and screens compose them.
+     *
+     * WHAT THE COLOURS MEAN — this is information, never mood:
+     *   neutral    nothing is happening (Draft)
+     *   info       in flight, nothing is owed by you (Submitted → In QC review)
+     *   attention  you are the one holding it up (Revision requested, Ready to preview)
+     *   success    it landed (Approved, Delivered, Closed, Payout released)
+     *   danger     it went wrong (Disputed, Refunded, Cancelled)
+     *
+     * Every `-fg` clears 7:1 against white and 4.5:1 against its own `-bg`,
+     * measured, not eyeballed — tests/config/color-contrast.test.ts recomputes
+     * these from this file and fails the build if an edit drops below.
+     *
+     * `-line` is the `-fg` hue at low alpha rather than a fourth hand-picked
+     * lightness, so an edge cannot drift out of family when someone retunes a
+     * text colour. The dot in a badge is `currentColor` for the same reason.
+     *
+     * COLOUR IS NEVER THE ONLY SIGNAL. Every badge carries its label, so a
+     * red/green confusion — 1 in 12 men, and this product's users skew male —
+     * costs nothing. That is the constraint that made five families safe at
+     * all.
+     */
+    --tone-neutral-fg: hsl(0 0% 35%);
+    --tone-neutral-bg: hsl(0 0% 96.5%);
+    --tone-neutral-line: hsl(0 0% 35% / 0.22);
+
+    /* The brand hue. In-flight work is the app's default state, so its status
+     * colour being the accent is what keeps the other four meaningful. */
+    --tone-info-fg: hsl(228 69% 46%);
+    --tone-info-bg: hsl(228 78% 96.5%);
+    --tone-info-line: hsl(228 69% 46% / 0.28);
+
+    /* Ochre, not yellow. Yellow at a lightness dark enough to read as text
+     * stops looking like yellow, and at a lightness that looks like yellow it
+     * cannot be read. */
+    --tone-attention-fg: hsl(32 92% 26%);
+    --tone-attention-bg: hsl(36 90% 95.5%);
+    --tone-attention-line: hsl(32 92% 26% / 0.28);
+
+    /* Deep, because green is intrinsically the lightest hue on this wheel —
+     * the emerald-700 this replaces was the one tone that never quite got
+     * there. */
+    --tone-success-fg: hsl(152 80% 20%);
+    --tone-success-bg: hsl(152 60% 95.5%);
+    --tone-success-line: hsl(152 80% 20% / 0.26);
+
+    /* Distinct from --destructive, deliberately. --destructive is a BUTTON
+     * fill that white text sits on; this is text that sits on a pale fill.
+     * One value cannot be both without one of the two being wrong. */
+    --tone-danger-fg: hsl(0 72% 36%);
+    --tone-danger-bg: hsl(0 78% 96.5%);
+    --tone-danger-line: hsl(0 72% 36% / 0.26);
   }
 
   /*
@@ -213,7 +318,40 @@
     --border-strong: rgba(255, 255, 255, 0.17);
     --e-1: 0 1px 2px rgba(0, 0, 0, 0.45);
     --e-2: 0 4px 14px -3px rgba(0, 0, 0, 0.55);
-    --focus-ring: 0 0 0 3px rgba(123, 150, 245, 0.28);
+    --focus-ring: 0 0 0 3px rgba(123, 150, 245, 0.4);
+
+    /*
+     * The five families, derived for dark rather than inverted into it.
+     *
+     * Hue and saturation carry over so a status is the same IDEA in both
+     * themes; lightness is re-solved, because the light values would be
+     * illegible here and their mirror images would not land in the same place.
+     * Each `-fg` is solved to ~8:1 against the dark ground — a deliberately
+     * uniform target, since on a dark surface an unequal one shows up as one
+     * family shouting while another mumbles.
+     *
+     * The fills are near-black tints rather than the light theme's near-whites:
+     * a 96% fill turned into a 4% fill is a fill nobody can see.
+     */
+    --tone-neutral-fg: hsl(0 0% 68%);
+    --tone-neutral-bg: hsl(0 0% 15%);
+    --tone-neutral-line: hsl(0 0% 68% / 0.24);
+
+    --tone-info-fg: hsl(228 72% 76%);
+    --tone-info-bg: hsl(228 42% 14%);
+    --tone-info-line: hsl(228 72% 76% / 0.3);
+
+    --tone-attention-fg: hsl(36 80% 53%);
+    --tone-attention-bg: hsl(34 48% 12%);
+    --tone-attention-line: hsl(36 80% 53% / 0.3);
+
+    --tone-success-fg: hsl(152 52% 49%);
+    --tone-success-bg: hsl(152 40% 11%);
+    --tone-success-line: hsl(152 52% 49% / 0.3);
+
+    --tone-danger-fg: hsl(0 70% 75%);
+    --tone-danger-bg: hsl(0 40% 13%);
+    --tone-danger-line: hsl(0 70% 75% / 0.28);
   }
 
   * {

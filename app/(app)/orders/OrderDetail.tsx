@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
+import { TONE_TEXT } from "@/lib/tone";
 
 import {
   transitionAction,
@@ -274,7 +275,7 @@ export function OrderDetail({
             </div>
           )}
           {o.status === "PAYOUT_RELEASED" && (
-            <p className="mt-3 text-sm text-emerald-700 dark:text-emerald-400">
+            <p className={`mt-3 text-sm ${TONE_TEXT.success}`}>
               Funds released to the payout legs.
             </p>
           )}
