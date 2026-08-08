@@ -149,7 +149,7 @@ export default async function DesignerOnboardingPage() {
       <Stepper steps={STEPS} current={currentStep} className="mt-5" />
 
       {stage === "active" && (
-        <section className="mt-6 rounded-lg border border-border bg-card p-5">
+        <section className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <div className="flex items-center gap-2">
             <Badge className={TONE_SURFACE.success}>
               Active
@@ -168,7 +168,7 @@ export default async function DesignerOnboardingPage() {
       )}
 
       {stage === "sign" && doc && (
-        <section className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
+        <section className="mt-6 space-y-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <div>
             <p className="text-sm font-medium">{doc.title}</p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -215,7 +215,7 @@ export default async function DesignerOnboardingPage() {
       )}
 
       {stage === "apply" && (
-        <section className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
+        <section className="mt-6 space-y-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <p className="text-sm text-muted-foreground">
             Apply to join as a designer. After applying you&apos;ll review and sign the designer
             agreement; you can&apos;t be assigned work until you do.

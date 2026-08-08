@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrustLine } from "@/components/trust-line";
 import { createUserSupabaseClient } from "@/lib/supabase/server";
 
@@ -68,7 +69,9 @@ export default async function DashboardPage() {
   return (
     <main className="container max-w-3xl py-8">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-[length:var(--fs-6)] font-semibold leading-[var(--lh-6)] tracking-[var(--ls-6)]">
+          Dashboard
+        </h1>
         {me && (
           <div className="flex items-center gap-2 text-sm">
             <Badge variant="muted">{me.role}</Badge>
@@ -78,34 +81,43 @@ export default async function DashboardPage() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <div className="mt-4 rounded-[var(--r-md)] border border-destructive/30 bg-destructive/5 px-[var(--s-4)] py-[var(--s-3)] text-[length:var(--fs-3)] text-destructive">
           Couldn&apos;t load your account: {error.message}
         </div>
       )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <section className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Verified identity
-          </p>
-          <p className="tabular mt-1 truncate font-mono text-sm" title={userId}>
-            {userId}
-          </p>
-        </section>
-        <section className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Orders visible to you
-          </p>
-          <p className="tabular mt-1 font-mono text-2xl">{myOrders ?? 0}</p>
-        </section>
+        <Card>
+          <CardBody>
+            <p className="text-[length:var(--fs-1)] font-medium uppercase tracking-[var(--ls-1)] text-muted-foreground">
+              Verified identity
+            </p>
+            <p
+              className="tabular mt-1 truncate font-mono text-[length:var(--fs-2)]"
+              title={userId}
+            >
+              {userId}
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-[length:var(--fs-1)] font-medium uppercase tracking-[var(--ls-1)] text-muted-foreground">
+              Orders visible to you
+            </p>
+            <p className="tabular mt-1 font-mono text-[length:var(--fs-6)] leading-[var(--lh-6)]">
+              {myOrders ?? 0}
+            </p>
+          </CardBody>
+        </Card>
       </div>
 
-      <section className="mt-4 rounded-lg border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <Card className="mt-4">
+        <CardHeader>
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">Notifications</p>
+            <CardTitle>Notifications</CardTitle>
             {unread > 0 && (
-              <span className="tabular inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+              <span className="tabular inline-flex h-6 min-w-6 items-center justify-center rounded-[var(--r-full)] bg-primary px-2 text-[length:var(--fs-1)] font-semibold text-primary-foreground">
                 {unread}
               </span>
             )}
@@ -117,16 +129,19 @@ export default async function DashboardPage() {
               </Button>
             </form>
           )}
-        </div>
+        </CardHeader>
         <ul className="divide-y divide-border">
           {notifications.length === 0 && (
-            <li className="px-4 py-6 text-center text-sm text-muted-foreground">
+            <li className="px-[var(--s-5)] py-[var(--s-8)] text-center text-[length:var(--fs-3)] text-muted-foreground">
               No notifications yet. You&apos;ll be told when an order changes state or a message
               arrives.
             </li>
           )}
           {notifications.map((n) => (
-            <li key={n.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+            <li
+              key={n.id}
+              className="flex min-h-[var(--ctl)] items-center gap-3 px-[var(--s-5)] py-[var(--s-3)] text-[length:var(--fs-l)] leading-[var(--lh-l)]"
+            >
               {!n.read_at && (
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
               )}
@@ -135,29 +150,29 @@ export default async function DashboardPage() {
               </span>
               <span className="ml-auto flex shrink-0 items-center gap-3">
                 {n.order_id && (
-                  <span className="tabular hidden font-mono text-xs text-muted-foreground sm:inline">
+                  <span className="tabular hidden font-mono text-[length:var(--fs-2)] text-muted-foreground sm:inline">
                     {n.order_id.slice(0, 10)}…
                   </span>
                 )}
-                <span className="tabular text-xs text-muted-foreground">
+                <span className="tabular text-[length:var(--fs-2)] text-muted-foreground">
                   {timeAgo(n.created_at)}
                 </span>
               </span>
             </li>
           ))}
         </ul>
-      </section>
+      </Card>
 
       {/* Only the roles that receive escrow releases. A payout account is now a
           hard precondition for release_escrow (0023), so an unbanked designer
           would otherwise discover the problem only when their money didn't
           arrive. */}
       {payable && (
-        <section className="mt-4 rounded-lg border border-border bg-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <Card className="mt-4">
+          <CardBody className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium">Payout account</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-[length:var(--fs-4)] font-semibold">Payout account</p>
+              <p className="mt-1 text-[length:var(--fs-3)] leading-[var(--lh-3)] text-muted-foreground">
                 {payoutStatus === "VERIFIED"
                   ? "Verified. Your earnings will be sent here."
                   : payoutStatus === "PENDING_VERIFICATION"
@@ -176,8 +191,8 @@ export default async function DashboardPage() {
             >
               {payoutStatus ? "Manage" : "Add payout account"}
             </Link>
-          </div>
-        </section>
+          </CardBody>
+        </Card>
       )}
 
       <TrustLine className="mt-6" />

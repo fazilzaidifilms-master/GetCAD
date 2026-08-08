@@ -44,7 +44,7 @@ export default async function AdminPage() {
     return (
       <main className="container max-w-2xl py-12">
         <h1 className="text-xl font-semibold tracking-tight">Staff console</h1>
-        <div className="mt-4 rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-sm text-muted-foreground">
           This area is for staff roles (SALES, OPS, QC, FINANCE). Your role is{" "}
           <Badge variant="muted">{role}</Badge>.
         </div>
@@ -149,7 +149,7 @@ export default async function AdminPage() {
       )}
 
       {orders.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-border bg-card p-10 text-center">
+        <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
           <p className="text-sm font-medium">Queue clear</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Nothing needs a {role} action right now. New orders will appear here the moment they
@@ -161,7 +161,7 @@ export default async function AdminPage() {
           {statuses.map((status) => {
             const group = byStatus.get(status) ?? [];
             return (
-              <section key={status} className="overflow-hidden rounded-lg border border-border bg-card">
+              <section key={status} className="overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
                 <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={status} />

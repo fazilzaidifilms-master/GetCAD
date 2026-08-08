@@ -9,17 +9,17 @@ export default function DashboardLoading() {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <Skeleton className="h-3 w-32" />
           <Skeleton className="mt-2 h-5 w-48" />
         </div>
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <Skeleton className="h-3 w-32" />
           <Skeleton className="mt-2 h-7 w-10" />
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg border border-border bg-card">
+      <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
         <div className="border-b border-border px-4 py-3">
           <Skeleton className="h-4 w-28" />
         </div>

@@ -16,7 +16,7 @@ export default function DesignerOnboardingLoading() {
         <Skeleton className="h-4 w-28" />
       </div>
 
-      <div className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
+      <div className="mt-6 space-y-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
         <Skeleton className="h-4 w-2/3" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-9 w-40" />

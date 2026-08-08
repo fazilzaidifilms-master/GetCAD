@@ -120,7 +120,7 @@ export default async function AdminUsersPage({
         </Button>
       </form>
 
-      <div className="mt-6 overflow-hidden rounded-[var(--r-lg)] border border-border bg-card">
+      <div className="mt-6 overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
         {users.length === 0 ? (
           <p className="p-6 text-center text-sm text-muted-foreground">
             No accounts match. {q ? "Try a shorter reference." : ""}

@@ -82,7 +82,7 @@ export default async function PayoutSettingsPage() {
       )}
 
       {account && (
-        <section className="mt-6 rounded-lg border border-border bg-card p-4">
+        <section className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-sm font-medium">On file</p>
             <Badge variant={STATUS_TONE[account.status]}>
@@ -134,7 +134,7 @@ export default async function PayoutSettingsPage() {
         </section>
       )}
 
-      <section className="mt-6 rounded-lg border border-border bg-card p-4">
+      <section className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
         <p className="text-sm font-medium">{account ? "Update your details" : "Add your details"}</p>
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
           These must match your bank exactly. A mismatch between the name, account number and IFSC
@@ -144,7 +144,7 @@ export default async function PayoutSettingsPage() {
       </section>
 
       {payouts.length > 0 && (
-        <section className="mt-6 rounded-lg border border-border bg-card">
+        <section className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
           <div className="border-b border-border px-4 py-3">
             <p className="text-sm font-medium">Your payouts</p>
           </div>

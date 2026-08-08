@@ -50,10 +50,25 @@ const config: Config = {
           foreground: "hsl(var(--popover-foreground))",
         },
       },
+      /*
+       * Pointed at the density tokens, which is what makes P1 finally reach the
+       * screens that were written before it.
+       *
+       * These used to derive from a fixed `--radius: 0.5rem`, so `rounded-lg`
+       * meant 8px everywhere and always. Twenty-one of the app's thirty-two
+       * card surfaces are spelled `rounded-lg` — they were the majority, and
+       * they were the ones ignoring density entirely: not softening for a
+       * client on a phone, not tightening for staff working forty orders a day.
+       * Only the handful already written as `rounded-[var(--r-lg)]` responded.
+       *
+       * Re-pointing the scale fixes all of them at once and leaves the
+       * arbitrary-value spellings meaning exactly what they already meant.
+       */
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "var(--r-sm)",
+        md: "var(--r-md)",
+        lg: "var(--r-lg)",
+        xl: "var(--r-xl)",
       },
       keyframes: {
         "accordion-down": {

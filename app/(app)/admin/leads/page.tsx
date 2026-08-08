@@ -53,7 +53,7 @@ export default async function LeadsPage({
     return (
       <main className="container max-w-2xl py-12">
         <h1 className="text-xl font-semibold tracking-tight">Contact leads</h1>
-        <div className="mt-4 rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)] text-sm text-muted-foreground">
           {denied
             ? "This inbox is for OPS and SALES. Switch to one of those roles to work leads."
             : `Couldn't load leads: ${error.message}`}
@@ -93,14 +93,14 @@ export default async function LeadsPage({
       </div>
 
       {leads.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-border bg-card p-10 text-center">
+        <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
           <p className="text-sm font-medium">Nothing here</p>
           <p className="mt-1 text-sm text-muted-foreground">No leads in this state.</p>
         </div>
       ) : (
         <ul className="mt-6 space-y-4">
           {leads.map((lead) => (
-            <li key={lead.id} className="rounded-lg border border-border bg-card p-4">
+            <li key={lead.id} className="rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
               <div className="flex items-baseline justify-between gap-3">
                 <div>
                   <p className="font-medium">

@@ -51,7 +51,7 @@ export function FileCard({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-[var(--r-lg)] border border-border bg-card p-3",
+        "flex items-center gap-3 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-4)]",
         className,
       )}
       style={{ boxShadow: "var(--e-1)" }}

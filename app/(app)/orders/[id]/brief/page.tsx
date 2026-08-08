@@ -94,7 +94,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
     return (
       <main className="container max-w-2xl py-8">
         <BackLink id={id} />
-        <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card p-8 text-center">
+        <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
           <p className="text-sm font-medium">Order not available</p>
           <p className="mt-1 text-sm text-muted-foreground">
             This order isn&apos;t visible to your role, or the reference is wrong.
@@ -208,7 +208,7 @@ const pretty = (v: string | null | undefined) =>
 function ReadOnlyBrief({ spec, accents }: { spec: SpecRow | null; accents: AccentRow[] }) {
   if (!spec) {
     return (
-      <div className="rounded-[var(--r-lg)] border border-border bg-card p-8 text-center">
+      <div className="rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
         <p className="text-sm font-medium">No brief yet</p>
         <p className="mt-1 text-sm text-muted-foreground">
           The client has not filled this in.
@@ -245,7 +245,7 @@ function ReadOnlyBrief({ spec, accents }: { spec: SpecRow | null; accents: Accen
   }
 
   return (
-    <dl className="divide-y divide-border overflow-hidden rounded-[var(--r-lg)] border border-border bg-card">
+    <dl className="divide-y divide-border overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
       {rows.map(([k, v]) => (
         <div key={k} className="px-4 py-3">
           <dt className="text-[length:var(--fs-2)] uppercase tracking-[var(--ls-1)] text-muted-foreground">

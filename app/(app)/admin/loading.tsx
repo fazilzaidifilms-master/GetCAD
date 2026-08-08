@@ -13,7 +13,7 @@ export default function AdminLoading() {
 
       <div className="mt-6 space-y-6">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-lg border border-border bg-card">
+          <div key={i} className="overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
             <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
               <Skeleton className="h-5 w-24 rounded-full" />
               <Skeleton className="h-3 w-6" />

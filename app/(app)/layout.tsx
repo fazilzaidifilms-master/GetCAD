@@ -56,8 +56,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* The sidebar is fixed, so the content column is inset past it rather
           than flowing under it. Done once here, not as a class every page has
-          to remember. */}
-      <div className={tabs ? "md:pl-64" : undefined}>
+          to remember.
+
+          The tinted ground is what makes the cards read as cards: a white
+          panel on a white page with a 1px border is an outline, and a screen
+          made of those is a stack of rectangles at identical weight. It stops
+          at the app shell — the marketing site keeps its white page. */}
+      <div
+        className={cn(
+          "min-h-screen bg-[color:var(--app-ground)]",
+          tabs && "md:pl-64",
+        )}
+      >
         <header
           className={cn(
             "sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur",

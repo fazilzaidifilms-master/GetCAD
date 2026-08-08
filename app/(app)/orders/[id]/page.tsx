@@ -102,7 +102,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     return (
       <main className="container max-w-3xl py-8">
         <BackLink />
-        <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card p-8 text-center">
+        <div className="mt-6 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-10)] text-center">
           <p className="text-sm font-medium">Order not available</p>
           <p className="mt-1 text-sm text-muted-foreground">
             This order isn&apos;t visible to your role, or the reference is wrong.
@@ -149,7 +149,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           resumable and linkable. */}
       <Link
         href={`/orders/${order.id}/brief`}
-        className="mt-4 flex min-h-[var(--ctl)] items-center justify-between rounded-[var(--r-lg)] border border-border bg-card px-4 transition-colors duration-[var(--dur-fast)] hover:bg-accent"
+        className="mt-4 flex min-h-[var(--ctl)] items-center justify-between rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] px-4 transition-colors duration-[var(--dur-fast)] hover:bg-accent"
       >
         <span className="text-[length:var(--fs-4)] font-medium">The brief</span>
         <span className="text-muted-foreground" aria-hidden>

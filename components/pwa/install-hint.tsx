@@ -188,6 +188,6 @@ function ShareGlyph() {
 
 function Wrap({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card p-4">{children}</div>
+    <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">{children}</div>
   );
 }

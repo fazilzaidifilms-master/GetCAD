@@ -93,7 +93,7 @@ export default async function OrdersPage({
         </Button>
       </form>
 
-      <div className="mt-6 overflow-hidden rounded-[var(--r-lg)] border border-border bg-card">
+      <div className="mt-6 overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
         {orders.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-sm font-medium">No orders yet</p>

@@ -133,13 +133,27 @@ describe.each(["light", "dark"] as const)("%s theme", (theme) => {
   it("sets body text at AAA", () => {
     check("--foreground", "--background", 7);
     check("--card-foreground", "--card", 7);
+    check("--foreground", "--app-ground", 7);
   });
 
   // The biggest single legibility lever in the file: this colour carries
   // timestamps, amounts, order meta and every inactive navigation label.
-  it("sets secondary text at AAA too, on both surfaces it lands on", () => {
+  //
+  // --app-ground is checked because tinting the page cost exactly this: at 35%
+  // the ratio on white was 7.00 and on the 3%-tinted ground 6.74. A background
+  // change three files away is not somewhere anyone would think to re-measure
+  // a text colour, which is the entire argument for computing it here.
+  it("sets secondary text at AAA too, on every surface it lands on", () => {
     check("--muted-foreground", "--background", 7);
+    check("--muted-foreground", "--app-ground", 7);
     check("--muted-foreground", "--muted", 4.5);
+  });
+
+  // Cards are white on a tinted ground; if those two converge the elevation
+  // disappears and every panel is an outline again.
+  it("separates a card from the ground it sits on", () => {
+    const ratio = contrast(colorOf(theme, "--card"), colorOf(theme, "--app-ground"));
+    expect(ratio, `${theme}: card and ground are indistinguishable`).toBeGreaterThan(1.02);
   });
 
   // WCAG 1.4.11. An input you cannot find is an input you click around for.

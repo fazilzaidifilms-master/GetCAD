@@ -48,7 +48,7 @@ export default async function AccountPage() {
         Account
       </h1>
 
-      <dl className="mt-6 divide-y divide-border overflow-hidden rounded-[var(--r-lg)] border border-border bg-card">
+      <dl className="mt-6 divide-y divide-border overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
         <Row label="Signed in as" value={partyLabel(role)} />
         <Row label="Status" value={status === "ACTIVE" ? "Active" : "Pending"} />
         <Row
@@ -62,7 +62,7 @@ export default async function AccountPage() {
       <InstallHint />
 
       {pushOffered ? (
-        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card p-4">
+        <div className="mt-4 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
           <PushOptIn publicKey={vapidPublicKey} />
         </div>
       ) : null}

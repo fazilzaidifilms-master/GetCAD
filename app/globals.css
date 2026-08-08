@@ -27,9 +27,10 @@
      * meta, the inactive navigation labels, half the captions in the product.
      * At 42% it cleared AA and nothing more, which is a standard written for
      * "legible" rather than "comfortable", on a phone, in a showroom, for
-     * someone in their fifties. 35% is the AAA threshold exactly.
+     * someone in their fifties. 33% clears 7:1 on white AND on the tinted app ground below, which
+     * 35% did not — a 3% tint is enough to cost you the threshold.
      */
-    --muted-foreground: 0 0% 35%;
+    --muted-foreground: 0 0% 33%;
     --subtle: 0 0% 98%; /* faint panel fill */
 
     --secondary: 0 0% 96.5%;
@@ -60,7 +61,28 @@
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /*
+     * THE GROUND THE APP SITS ON, and the reason its screens stopped looking
+     * like stacks of outlined rectangles.
+     *
+     * A white card, on a white page, with a 1px border, is not a card — it is
+     * an outline. Every panel then arrives at exactly the same visual weight,
+     * so a screen reads as a list of boxes rather than as content with some
+     * parts raised. That flatness is a large part of what "it looks like a
+     * website, not an app" actually describes.
+     *
+     * Tinting the ground by 3% is the whole fix. Cards keep `--card` (pure
+     * white) and their existing shadow suddenly has something to sit against.
+     * Nothing about the cards themselves changed.
+     *
+     * Scoped to the app shell, not to `body` — the marketing site is a website
+     * and its white page is correct there.
+     *
+     * Dark mode already had this: `--background` 7% under `--card` 9.5%. The
+     * value here matches the background exactly, so the shell is a no-op in
+     * dark and the light theme catches up to it.
+     */
+    --app-ground: hsl(0 0% 97%);
 
     --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas,
       "Liberation Mono", monospace;
@@ -93,6 +115,10 @@
      */
     --border: 0 0% 24%;
     --input: 0 0% 38%;
+
+    /* Already correct here — dark has always had a ground darker than its
+     * cards. Declared so the token resolves in both themes. */
+    --app-ground: hsl(0 0% 7%);
 
     --primary: 227 86% 72%; /* #7B96F5 */
     /*

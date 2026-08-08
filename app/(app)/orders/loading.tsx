@@ -10,7 +10,7 @@ export default function OrdersLoading() {
 
       <Skeleton className="mt-4 h-9 w-full" />
 
-      <div className="mt-6 space-y-0 overflow-hidden rounded-lg border border-border bg-card">
+      <div className="mt-6 space-y-0 overflow-hidden rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)]">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0">
             <Skeleton className="h-5 w-20 shrink-0 rounded-full" />

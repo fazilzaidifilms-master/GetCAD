@@ -57,7 +57,7 @@ export function ReferencePinner({
   }
 
   return (
-    <form action={setPinsAction} className="rounded-[var(--r-lg)] border border-border bg-card p-3">
+    <form action={setPinsAction} className="rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-4)]">
       <input type="hidden" name="order_id" value={orderId} />
       <input type="hidden" name="image_id" value={imageId} />
 

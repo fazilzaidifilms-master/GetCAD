@@ -164,7 +164,7 @@ export function BriefWizard({
 
   if (readOnly) {
     return (
-      <div className="rounded-[var(--r-lg)] border border-border bg-card p-4">
+      <div className="rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
         <p className="text-[length:var(--fs-3)] text-muted-foreground">
           This brief is fixed — the order has been quoted against it. To change the work, start a
           new order based on this one.
@@ -706,7 +706,7 @@ function QualityPanel({
         : "text-foreground";
 
   return (
-    <section className="mt-8 rounded-[var(--r-lg)] border border-border bg-card p-4">
+    <section className="mt-8 rounded-[var(--r-lg)] border border-border bg-card shadow-[var(--e-1)] p-[var(--s-5)]">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-[length:var(--fs-4)] font-medium">Brief quality</h3>
         <span className={cn("tabular text-[length:var(--fs-5)] font-semibold", tone)}>

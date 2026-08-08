@@ -9,6 +9,7 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import { TONE_TEXT } from "@/lib/tone";
@@ -60,6 +61,16 @@ const UPLOADABLE_KINDS: FileKind[] = [
   "OTHER",
 ];
 
+/**
+ * The order screen is nine of these stacked, so it is the surface the product
+ * is mostly made of.
+ *
+ * It used to draw itself: its own radius, its own 10px header padding, its own
+ * 14px title — none of which matched the dashboard's version of the same idea,
+ * because there was no shared version to match. Now it composes `Card`, and the
+ * only thing left here is the title/aside arrangement that is genuinely local
+ * to this screen.
+ */
 function Panel({
   title,
   aside,
@@ -70,13 +81,13 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card">
-      <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <h2 className="text-sm font-medium">{title}</h2>
+    <Card as="section">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
         {aside}
-      </header>
-      <div className="p-4">{children}</div>
-    </section>
+      </CardHeader>
+      <CardBody>{children}</CardBody>
+    </Card>
   );
 }
 
